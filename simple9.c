@@ -188,5 +188,9 @@ int main(void) {
     printf("first compressed word in binary: \n");
     print_bigendian(compressed->items[0]);
     
+    flexarray_free(compressed);
+    free(dgaps);
+    free(docnums);
+    
     return 0;
 }
