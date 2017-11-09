@@ -57,22 +57,47 @@ void flexarray_free(flexarray f) {
     free(f);
 }
 
-//just case c for now, three bit codes
+void print_bigendian(int num) {
+    int i;
+    for (i = 31; i >= 0; i--) {
+        if (num & (1<<i)) {
+            printf("1");
+        } else {
+            printf("0");
+        }
+    }
+    printf("\n");
+}
+
+
+//just case c for now, three-bit codes
 int compress(int selector, int index, int *dgaps) {
+    printf("entered compress function\n");
+    selector = 3;
+    index = index - (28/selector);
     int code, result = 0;
     int numcodes = 0;
-    while ((numcodes * selector) < 28) {
+    do {
         result += selector; //put the selector code in
+        printf("%dth code: \n", numcodes);
         code = dgaps[index];
-        //code = code << (4 + numcodes * selector);
-        result = result & (code << (4 + numcodes * selector));
+        print_bigendian(code);
+        printf("shifted code: \n");
+        code = code << (4 + numcodes * selector);
+        print_bigendian(code);
+        result = (result | code);
+        printf("current state of compressed word: \n");
+        print_bigendian(result);
         index++;
-    }
+        numcodes++;
+    } while (((numcodes+1) * selector) < 29);
     //printf("compressing with selector %c\n", selector);
     //compressedwords++;
     
     return result;
 }
+
+
 
 
 int main(void) {
@@ -81,6 +106,7 @@ int main(void) {
     int *dgaps;
     int bits, maxbits, current, elements, index = 0;
     
+    print_bigendian(7);
     
     flexarray f = flexarray_new();
     
@@ -137,9 +163,10 @@ int main(void) {
             selector = maxbits;
         }
         
-        compress(selector, index, dgaps);
+        //compress(selector, index, dgaps);
     }
     
+    compress(3, 35, dgaps);
     printf("number of integers compressed: %d\n", arraysize);
     printf("compressed into %d words\n", compressedwords);
     

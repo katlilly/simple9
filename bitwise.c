@@ -4,10 +4,38 @@
 #include<math.h>
 #include<strings.h>
 
+int compress(int selector, int index, int *dgaps) {
+    selector = 3;
+    index = index - (28/selector);
+    int code, result = 0;
+    int numcodes = 0;
+    //  do {
+    //   result += selector;
+    //    printf("%b\n", result);
+    return 1;
+        
+}
+
 int main(void) {
   unsigned int a, b, c, d, e, f, g, h;
   int i;
+  int *dgaps;
 
+  dgaps = malloc(8 * sizeof dgaps[0]);
+  dgaps[0] = 1;
+  dgaps[1] = 3;
+  dgaps[2] = 5;
+  dgaps[3] = 2;
+  dgaps[4] = 4;
+  dgaps[5] = 1;
+  dgaps[6] = 2;
+  dgaps[7] = 3;
+
+  for (i = 0; i < 8; i++) {
+      printf("%d, ", dgaps[i]);
+  }
+
+  
   a = 0xff0000ff;
   b = 0x0000ff00;
   c = a && b;
@@ -24,7 +52,7 @@ int main(void) {
 
   printf("e: %u, f: %u, g: %u, h: %u\n\n", e, f, g, h);
 
-  
+  h = 3;
   printf("print 0x00ff0000 little endian:\n");
   for(i = 0; i < 32; i++) {
     printf("%d", h%2);
@@ -33,7 +61,7 @@ int main(void) {
   printf("\n\n");
 
   h = 0x00ff0000;
-  
+  h = 3;
   printf("print 0x00ff0000 big endian:\n");
   for (i = 31; i >= 0; i--) {
     if (h & (1<<i)) {
