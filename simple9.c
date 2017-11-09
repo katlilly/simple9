@@ -70,7 +70,6 @@ void print_bigendian(int num) {
 }
 
 
-//just case c for now, three-bit codes
 unsigned int compress(unsigned int selector, int index, unsigned int *dgaps) {
     printf("current selector: %d\n", selector);
     print_bigendian(selector);
@@ -98,43 +97,54 @@ unsigned int compress(unsigned int selector, int index, unsigned int *dgaps) {
     return result;
 }
 
-
+int compare_ints(const void *a, const void *b) {
+    const int *ia = (const int *) a;
+    const int *ib = (const int *) b;
+    return (*ia > *ib) - (*ia < *ib);
+}
 
 
 int main(void) {
     unsigned int selector;
-    unsigned int item, arraysize, i, prev = 0;
-    unsigned int *dgaps;
+    unsigned int arraysize = 500, i, prev = 0;
+    unsigned int *docnums, *dgaps;
     unsigned int bits, maxbits, current, elements;
-    int index = 0;
+    unsigned int index = 0;
     
-    
-    flexarray f = flexarray_new();
     flexarray compressed = flexarray_new();
     
-    while (1 == scanf("%d", &item)) {
-        fappend(f, item);
+    //flexarray f = flexarray_new();
+    //
+    //while (1 == scanf("%d", &item)) {
+    //    fappend(f, item);
+    //}
+    //arraysize = getsize(f);
+    //flexarray_sort(f);
+    //flexarray_print(f);
+    
+    docnums = emalloc(arraysize * sizeof docnums[0]);
+    for (i = 0; i < arraysize; i++) {
+        docnums[i] = rand() % (arraysize *3);
+        printf("%d, ", docnums[i]);
     }
     
-    arraysize = getsize(f);
-    flexarray_sort(f);
-   // flexarray_print(f);
+    qsort(docnums, arraysize, sizeof docnums[0], compare_ints);
     
     dgaps = emalloc(arraysize * sizeof dgaps[0]);
     
-    for (i = 0; i < arraysize; i++) {
-        dgaps[i] = 0;
-    }
-    
-    for (i = 0; i < arraysize; i++) {
-        dgaps[i] = f->items[i] - prev;
-        prev = f->items[i];
-    }
-    
-    //printf("d-gaps:\n");
     //for (i = 0; i < arraysize; i++) {
-    //    printf("%d\n", dgaps[i]);
+    //    dgaps[i] = 0;
     //}
+    
+    for (i = 0; i < arraysize; i++) {
+        dgaps[i] = docnums[i] - prev;
+        prev = docnums[i];
+    }
+    
+    printf("d-gaps:\n");
+    for (i = 0; i < arraysize; i++) {
+        printf("%d\n", dgaps[i]);
+    }
     
     while (index < arraysize) {
         elements = 0;
