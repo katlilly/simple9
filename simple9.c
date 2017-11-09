@@ -71,14 +71,15 @@ void print_bigendian(int num) {
 
 
 //just case c for now, three-bit codes
-int compress(int selector, int index, int *dgaps) {
-    printf("entered compress function\n");
-    selector = 3;
+unsigned int compress(unsigned int selector, int index, unsigned int *dgaps) {
+    printf("current selector: %d\n", selector);
+    print_bigendian(selector);
+    //selector = 3;
     index = index - (28/selector);
-    int code, result = 0;
+    unsigned int code, result = 0;
     int numcodes = 0;
     do {
-        result += selector; //put the selector code in
+        result += selector;
         printf("%dth code: \n", numcodes);
         code = dgaps[index];
         print_bigendian(code);
@@ -101,14 +102,15 @@ int compress(int selector, int index, int *dgaps) {
 
 
 int main(void) {
-    int selector;
-    int item, arraysize, i, prev = 0;
-    int *dgaps;
-    int bits, maxbits, current, elements, index = 0;
+    unsigned int selector;
+    unsigned int item, arraysize, i, prev = 0;
+    unsigned int *dgaps;
+    unsigned int bits, maxbits, current, elements;
+    int index = 0;
     
-    print_bigendian(7);
     
     flexarray f = flexarray_new();
+    flexarray compressed = flexarray_new();
     
     while (1 == scanf("%d", &item)) {
         fappend(f, item);
@@ -116,7 +118,7 @@ int main(void) {
     
     arraysize = getsize(f);
     flexarray_sort(f);
-    flexarray_print(f);
+   // flexarray_print(f);
     
     dgaps = emalloc(arraysize * sizeof dgaps[0]);
     
@@ -129,10 +131,10 @@ int main(void) {
         prev = f->items[i];
     }
     
-    printf("d-gaps:\n");
-    for (i = 0; i < arraysize; i++) {
-        printf("%d\n", dgaps[i]);
-    }
+    //printf("d-gaps:\n");
+    //for (i = 0; i < arraysize; i++) {
+    //    printf("%d\n", dgaps[i]);
+    //}
     
     while (index < arraysize) {
         elements = 0;
@@ -163,12 +165,18 @@ int main(void) {
             selector = maxbits;
         }
         
-        //compress(selector, index, dgaps);
+        int temp = compress(selector, index, dgaps);
+        fappend(compressed, temp);
+        compressedwords++;
     }
     
-    compress(3, 35, dgaps);
+    //compress(3, 35, dgaps);
+    flexarray_print(compressed);
     printf("number of integers compressed: %d\n", arraysize);
     printf("compressed into %d words\n", compressedwords);
+    
+    printf("first compressed word in binary: \n");
+    print_bigendian(compressed->items[0]);
     
     return 0;
 }
