@@ -6,6 +6,7 @@
 
 int compressedwords = 0;
 int numcompressedints = 0;
+int numints = 0;
 
 struct flexarrayrec {
     uint64_t capacity;
@@ -84,6 +85,26 @@ uint64_t compress(uint64_t selector, int thisindex, uint64_t *dgaps) {
     //compressedwords++;
     
     return result;
+}
+
+//uses global variable numints to keep track of filling decompressed array
+void decompress(uint64_t word, flexarray decompressed, int numints) {
+    int i;
+    uint64_t selector, mask;
+    selector = word & 0x0000000f;
+    mask = (1 << (selector)) - 1;
+    //printf("mask: %llu, 0x%16llX\n", mask, mask);
+    //print_bigendian(mask);
+    //printf("selector: %llu, mask: %llu\n", selector, mask);
+    mask = mask << 4;
+    for (i = 0; (i * selector) < 29; ++i) {
+        //print_bigendian(mask);
+        uint64_t temp = mask & word;
+        temp = temp >> (selector *i);
+        temp = temp >> 4;
+        mask = mask << selector;
+        fappend(decompressed, temp);
+    }
 }
 
 int compare_ints(const void *a, const void *b) {
@@ -182,10 +203,10 @@ int main(void) {
     
     //compress(3, 35, dgaps);
     //flexarray_print(compresseddgaps);
-    for (i = 0; i < getsize(compresseddgaps); i++) {
-//        printf("0x%16llX\n", compresseddgaps->items[0]);
-        printf("0x%16llX\n", compresseddgaps->items[i]);
-    }
+    //for (i = 0; i < getsize(compresseddgaps); i++) {
+        //printf("0x%16llX\n", compresseddgaps->items[0]);
+    //    printf("0x%16llX\n", compresseddgaps->items[i]);
+    //}
     printf("number of integers compressed: %llu\n", arraysize);
     printf("compressed into %d words\n", compressedwords);
     
@@ -193,7 +214,19 @@ int main(void) {
     //print_bigendian(compresseddgaps->items[0]);
     //printf("0x%16llX\n", compresseddgaps->items[0]);
     
+    flexarray decompressed = flexarray_new();
     
+    numints = 0;
+    for (i = 0; i < compressedwords; i++) {
+        decompress(compresseddgaps->items[i], decompressed, numints);
+    }
+    
+    //flexarray_print(decompressed);
+    for (i = 0; i < arraysize; i++) {
+        printf("original: %llu ", dgaps[i]);
+        printf("decompressed: %llu ", decompressed->items[i]);
+        printf("\n");
+    }
     
     free(compresseddgaps);
     free(dgaps);
