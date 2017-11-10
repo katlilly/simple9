@@ -55,11 +55,11 @@ void print_bigendian(uint64_t num) {
 
 
 uint64_t compress(uint64_t selector, int thisindex, uint64_t *dgaps) {
-    printf("current selector: %llu\n", selector);
-    print_bigendian(selector);
+    //printf("current selector: %llu\n", selector);
+    //print_bigendian(selector);
     
     //index = index - (28/selector);
-    printf("compressing from index: %d\n", thisindex);
+    //printf("compressing from index: %d\n", thisindex);
     uint64_t code, shiftedcode, result = 0;
     int numcodes = 0;
     do {
@@ -134,18 +134,19 @@ int main(void) {
     for (i = 0; i < arraysize; i++) {
         printf("%4llu ", dgaps[i]);
         columns++;
-        if(columns == 10) {
+        if(columns == 7) {
             printf("\n");
             columns = 0;
         }
     }
+    printf("\n");
     
     while (index < arraysize) {
         elements = 0;
         maxbits = 0;
         index = numcompressedints;
 
-        // this doesn't work right, in some cases we compress with
+        // this doesn't work right. in some cases we compress with
         // more bits than needed because the following element needs it.
         // does a valid encoding, but with more sometimes bits than necessary
         while ((maxbits * elements) < 29){
@@ -172,15 +173,15 @@ int main(void) {
         } else {
             selector = maxbits;
         }
-        printf("compressing %dth word with selector %llu\n", compressedwords, selector);
-        printf("current index is: %llu\n", index);
-        int temp = compress(selector, numcompressedints, dgaps);
+        //printf("compressing %dth word with selector %llu\n", compressedwords, selector);
+        //printf("current index is: %llu\n", index);
+        uint64_t temp = compress(selector, numcompressedints, dgaps);
         fappend(compresseddgaps, temp);
         compressedwords++;
     }
     
     //compress(3, 35, dgaps);
-    flexarray_print(compresseddgaps);
+    //flexarray_print(compresseddgaps);
     for (i = 0; i < getsize(compresseddgaps); i++) {
 //        printf("0x%16llX\n", compresseddgaps->items[0]);
         printf("0x%16llX\n", compresseddgaps->items[i]);
