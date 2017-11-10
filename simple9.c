@@ -60,22 +60,26 @@ uint64_t compress(uint64_t selector, int thisindex, uint64_t *dgaps) {
     
     //index = index - (28/selector);
     printf("compressing from index: %d\n", thisindex);
-    uint64_t code, result = 0;
+    uint64_t code, shiftedcode, result = 0;
     int numcodes = 0;
     do {
-        result += selector;
-        printf("%dth code: \n", numcodes);
+        //result += selector;
+        result = result | selector;
+        //printf("%dth code: \n", numcodes);
         code = dgaps[numcompressedints];
-        print_bigendian(code);
-        printf("shifted code: \n");
-        code = code << (4 + numcodes * selector);
-        print_bigendian(code);
-        result = (result | code);
-        printf("current state of compressed word: \n");
-        print_bigendian(result);
+        //print_bigendian(code);
+        //printf("0x%16llX\n", code);
+        //printf("shifted code: \n");
+        shiftedcode = code << (4 + (numcodes * selector));
+        //print_bigendian(shiftedcode);
+        //printf("0x%16llX\n", shiftedcode);
+        result = result | shiftedcode;
+        //printf("current state of compressed word: \n");
+        //print_bigendian(result);
+        //printf("0x%16llX\n", result);
         numcompressedints++;
         numcodes++;
-    } while (((numcodes+1) * selector) < 29);
+    } while (((numcodes + 1) * selector) < 29);
     //printf("compressing with selector %c\n", selector);
     //compressedwords++;
     
@@ -148,7 +152,7 @@ int main(void) {
             current = dgaps[index++];
             elements++;
             bits = fls(current);
-            printf("%llu bits, ", bits);
+            //printf("%llu bits, ", bits);
             if (bits > maxbits) {
                 maxbits = bits;
             }
@@ -177,11 +181,18 @@ int main(void) {
     
     //compress(3, 35, dgaps);
     flexarray_print(compresseddgaps);
+    for (i = 0; i < getsize(compresseddgaps); i++) {
+//        printf("0x%16llX\n", compresseddgaps->items[0]);
+        printf("0x%16llX\n", compresseddgaps->items[i]);
+    }
     printf("number of integers compressed: %llu\n", arraysize);
     printf("compressed into %d words\n", compressedwords);
     
-    printf("first compressed word in binary: \n");
-    print_bigendian(compresseddgaps->items[0]);
+    //printf("first compressed word: \n");
+    //print_bigendian(compresseddgaps->items[0]);
+    //printf("0x%16llX\n", compresseddgaps->items[0]);
+    
+    
     
     free(compresseddgaps);
     free(dgaps);
