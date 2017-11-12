@@ -91,20 +91,22 @@ uint64_t compress(uint64_t selector, int thisindex, uint64_t *dgaps) {
 void decompress(uint64_t word, flexarray decompressed, int numints) {
     int i;
     uint64_t selector, mask;
-    selector = word & 0x0000000f;
+    selector = word & 0xf;
     mask = (1 << (selector)) - 1;
-    //printf("mask: %llu, 0x%16llX\n", mask, mask);
-    //print_bigendian(mask);
-    //printf("selector: %llu, mask: %llu\n", selector, mask);
+    printf("mask: %llu, 0x%16llX\n", mask, mask);
+    print_bigendian(mask);
+    printf("selector: %llu, mask: %llu\n", selector, mask);
     mask = mask << 4;
-    for (i = 0; (i * selector) < 29; ++i) {
+    for (i = 0; (i * selector) < 28; ++i) {
         //print_bigendian(mask);
         uint64_t temp = mask & word;
+        //printf("%llu", temp);
         temp = temp >> (selector *i);
         temp = temp >> 4;
         mask = mask << selector;
         fappend(decompressed, temp);
     }
+    //printf("\n");
 }
 
 int compare_ints(const void *a, const void *b) {
@@ -121,7 +123,7 @@ int main(void) {
     uint64_t *docnums, *dgaps;
     uint64_t bits, maxbits, current, elements;
     uint64_t index = 0;
-    int columns;
+    int columns, bitsused;
     
     flexarray compresseddgaps = flexarray_new();
     
@@ -167,33 +169,62 @@ int main(void) {
         maxbits = 0;
         index = numcompressedints;
 
-        // this doesn't work right. in some cases we compress with
-        // more bits than needed because the following element needs it.
-        // does a valid encoding, but with more sometimes bits than necessary
-        while ((maxbits * elements) < 29){
+        
+        bitsused = 0;
+        while (bitsused < 29) {
             current = dgaps[index++];
-            elements++;
             bits = fls(current);
-            //printf("%llu bits, ", bits);
+            elements++;
             if (bits > maxbits) {
                 maxbits = bits;
             }
-        } //while (maxbits * elements < 29);
-        
-        
-        if (maxbits > 28) {
-            return(EXIT_FAILURE);
-        } else if (maxbits > 14) {
-            selector = 28;
-        } else if (maxbits > 9) {
-            selector = 14;
-        } else if (maxbits > 7) {
-            selector = 9;
-        } else if (maxbits > 5) {
-            selector = 7;
-        } else {
-            selector = maxbits;
+            bitsused = maxbits * elements;
         }
+        elements--;
+        printf("number of elements: %llu\n", elements);
+        
+        if (elements == 9) {
+            selector = 3;
+        }
+        
+        if (elements == 1) {
+            selector = 28;
+        } else if (elements == 2) {
+            selector = 14;
+        } else if (elements == 3) {
+            selector = 9;
+        } else if (elements == 4) {
+            selector = 7;
+        } else if (elements == 5) {
+            selector = 5;
+        } else if (elements < 8) {
+            selector = 4;
+        } else if (elements < 10) {
+            selector = 3;
+        } else if (elements < 15) {
+            selector = 2;
+        } else if (elements < 29) {
+            selector = 1;
+        } else {
+            exit(EXIT_FAILURE);
+        }
+
+            
+            
+            printf("selector: %llu\n", selector);
+//        if (maxbits > 28) {
+//            return(EXIT_FAILURE);
+//        } else if (maxbits > 14) {
+//            selector = 28;
+//        } else if (maxbits > 9) {
+//            selector = 14;
+//        } else if (maxbits > 7) {
+//            selector = 9;
+//        } else if (maxbits > 5) {
+//            selector = 7;
+//        } else {
+//            selector = maxbits;
+//        }
         //printf("compressing %dth word with selector %llu\n", compressedwords, selector);
         //printf("current index is: %llu\n", index);
         uint64_t temp = compress(selector, numcompressedints, dgaps);
@@ -212,12 +243,13 @@ int main(void) {
     
     //printf("first compressed word: \n");
     //print_bigendian(compresseddgaps->items[0]);
-    //printf("0x%16llX\n", compresseddgaps->items[0]);
+    printf("0x%16llX\n", compresseddgaps->items[0]);
     
     flexarray decompressed = flexarray_new();
     
     numints = 0;
     for (i = 0; i < compressedwords; i++) {
+        //printf("\n");
         decompress(compresseddgaps->items[i], decompressed, numints);
     }
     
