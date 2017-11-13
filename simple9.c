@@ -4,19 +4,15 @@
 #include "mylib.h"
 #include "flexarray.h"
 
-int compressedwords = 0;
-int numcompressedints = 0;
-int numints = 0;
+int compressedwords = 0;    //number of 32 bit compressed words
+int numcompressedints = 0;  //keeps track of number of integers compressed
+int numints = 0;            //keep track of number of integers while decompressing
 
 struct flexarrayrec {
     uint64_t capacity;
     uint64_t itemcount;
     uint64_t *items;
 };
-
-int getsize(flexarray f) {
-    return f->itemcount;
-}
 
 flexarray flexarray_new() {
     flexarray result = emalloc(sizeof *result);
@@ -41,8 +37,7 @@ void flexarray_print(flexarray f) {
     }
 }
 
-
-void print_bigendian(uint64_t num) {
+void print_binary(uint64_t num) {
     int i;
     for (i = 31; i >= 0; i--) {
         if (num & (1<<i)) {
@@ -54,14 +49,12 @@ void print_bigendian(uint64_t num) {
     printf("\n");
 }
 
-
 uint64_t compress(uint64_t selector, int thisindex, uint64_t *dgaps) {
     //printf("compressing from index: %d\n", thisindex);
     uint64_t code, shiftedcode, result = 0;
     int numcodes = 0;
     do {
         result = result | selector;
-        //printf("%dth code: \n", numcodes);
         code = dgaps[numcompressedints];
         //printf("0x%16llX\n", code);
         //printf("shifted code: \n");
@@ -81,30 +74,13 @@ void decompress(uint64_t word, flexarray decompressed, int numints) {
     int i;
     uint64_t selector, mask, payload, temp;
     selector = word & 0xf;
-    printf("decompressing with selector: %llu\n", selector);
-
     mask = (1 << (selector)) - 1;
-    //printf("selector: %0llx, mask: %0llx\n", selector, mask);
-//    mask = mask << 4;
     payload = word >> 4;
-    //printf("payload: %0llx\n", payload);
     for (i = 0; i < (28/selector) ; i++) {
         temp = payload & mask;
         fappend(decompressed, temp);
         payload = payload >> selector;
     }
-    
-//    for (i = 0; (i * selector) < 28; ++i) {
-//        //print_bigendian(mask);
-//        temp = mask & word;
-//        //printf("%llu", temp);
-//
-//        temp = temp >> (selector *i);
-//        temp = temp >> 4;
-//        mask = mask << selector;
-//        fappend(decompressed, temp);
-//    }
-    //printf("\n");
 }
 
 int compare_ints(const void *a, const void *b) {
@@ -121,7 +97,7 @@ int main(void) {
     uint64_t *docnums, *dgaps;
     uint64_t bits, maxbits, current, elements;
     uint64_t index = 0;
-    int columns, bitsused;
+    int bitsused;
     
     flexarray compresseddgaps = flexarray_new();
     
@@ -136,8 +112,7 @@ int main(void) {
     
     docnums = emalloc(arraysize * sizeof docnums[0]);
     for (i = 0; i < arraysize; i++) {
-        docnums[i] = rand() % (arraysize *3);
-        //printf("%llu, ", docnums[i]);
+        docnums[i] = rand() % (arraysize * 3);
     }
     
     qsort(docnums, arraysize, sizeof docnums[0], compare_ints);
@@ -149,17 +124,17 @@ int main(void) {
         prev = docnums[i];
     }
     
-//    printf("d-gaps:\n");
-//    columns = 0;
-//    for (i = 0; i < arraysize; i++) {
-//        printf("%4llu ", dgaps[i]);
-//        columns++;
-//        if(columns == 7) {
-//            printf("\n");
-//            columns = 0;
-//        }
-//    }
-//    printf("\n");
+    //    printf("d-gaps:\n");
+    //    columns = 0;
+    //    for (i = 0; i < arraysize; i++) {
+    //        printf("%4llu ", dgaps[i]);
+    //        columns++;
+    //        if(columns == 7) {
+    //            printf("\n");
+    //            columns = 0;
+    //        }
+    //    }
+    //    printf("\n");
     
     while (index < arraysize) {
         elements = 0;
@@ -177,32 +152,7 @@ int main(void) {
             bitsused = maxbits * elements;
         }
         elements--;
-        //printf("number of elements: %llu\n", elements);
         
-        
-//        if (elements == 1) {
-//            selector = 28;
-//        } else if (elements == 2) {
-//            selector = 14;
-//        } else if (elements == 3) {
-//            selector = 9;
-//        } else if (elements == 4) {
-//            selector = 7;
-//        } else if (elements == 5) {
-//            selector = 5;
-//        } else if (elements < 8) {
-//            selector = 4;
-//        } else if (elements < 10) {
-//            selector = 3;
-//        } else if (elements < 15) {
-//            selector = 2;
-//        } else if (elements < 29) {
-//            selector = 1;
-//        } else {
-//            exit(EXIT_FAILURE);
-//        }
-        //  printf("selector: %llu\n", selector);
-
         if (maxbits > 28) {
             return(EXIT_FAILURE);
         } else if (maxbits > 14) {
@@ -216,43 +166,33 @@ int main(void) {
         } else {
             selector = maxbits;
         }
-        //printf("compressing %dth word with selector %llu\n", compressedwords, selector);
-        //printf("current index is: %llu\n", index);
+       
         uint64_t temp = compress(selector, numcompressedints, dgaps);
         fappend(compresseddgaps, temp);
         compressedwords++;
     }
     
-    //compress(3, 35, dgaps);
-    //flexarray_print(compresseddgaps);
-    //for (i = 0; i < getsize(compresseddgaps); i++) {
-        //printf("0x%16llX\n", compresseddgaps->items[0]);
-    //    printf("0x%16llX\n", compresseddgaps->items[i]);
-    //}
-    printf("number of integers compressed: %llu\n", arraysize);
-    printf("compressed into %d words\n", compressedwords);
+    printf("%llu integers were compressed into %d words\n", arraysize, compressedwords);
     
     //printf("first compressed word: \n");
-    //print_bigendian(compresseddgaps->items[0]);
-    printf("0x%16llX\n", compresseddgaps->items[0]);
+    //print_binary(compresseddgaps->items[0]);
+    //printf("0x%16llX\n", compresseddgaps->items[0]);
     
     flexarray decompressed = flexarray_new();
     
     numints = 0;
     for (i = 0; i < compressedwords; i++) {
-        //printf("\n");
         decompress(compresseddgaps->items[i], decompressed, numints);
     }
     
-    //flexarray_print(decompressed);
-    for (i = 0; i < arraysize; i++) {
-        printf("original: %llu ", dgaps[i]);
-        printf("decompressed: %llu ", decompressed->items[i]);
-        if (dgaps[i] != decompressed->items[i]) {
-            printf("wrong");
-        };
-        printf("\n");
-    }
+    //    for (i = 0; i < arraysize; i++) {
+    //        printf("original: %llu ", dgaps[i]);
+    //        printf("decompressed: %llu ", decompressed->items[i]);
+    //        if (dgaps[i] != decompressed->items[i]) {
+    //            printf("wrong");
+    //        };
+    //        printf("\n");
+    //    }
     
     free(compresseddgaps);
     free(dgaps);
