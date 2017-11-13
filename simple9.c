@@ -91,6 +91,22 @@ int compare_ints(const void *a, const void *b) {
 }
 
 
+int countwastedbits(uint64_t word) {
+  int i, external;
+  uint64_t selector;
+  selector = word & 0xf;
+  if (selector == 5) {
+    external = 3;
+  } else if (selector == 9) || (selector == 3) {
+      external = 1;
+    } else {
+    external = 0;
+  }
+  
+  // count internally wasted bits
+  // 
+}
+
 int main(void) {
     uint64_t selector;
     uint64_t arraysize = 500, i, prev = 0;
@@ -184,6 +200,14 @@ int main(void) {
     for (i = 0; i < compressedwords; i++) {
         decompress(compresseddgaps->items[i], decompressed, numints);
     }
+
+    int *wastedbits = malloc(compressedwords);
+    
+    for (i = 0; i < compressedwords; i++) {
+      wastedbits[i] = countwastedbits(compresseddgaps[i]);
+    }
+
+
     
     //    for (i = 0; i < arraysize; i++) {
     //        printf("original: %llu ", dgaps[i]);
