@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<strings.h>
+#include<stdint.h>
 #include "mylib.h"
 #include "flexarray.h"
 
@@ -97,14 +98,15 @@ int countwastedbits(uint64_t word) {
   selector = word & 0xf;
   if (selector == 5) {
     external = 3;
-  } else if (selector == 9) || (selector == 3) {
+  } else if (selector == 9 || selector == 3) {
       external = 1;
     } else {
     external = 0;
   }
   
   // count internally wasted bits
-  // 
+  //
+    return 2;
 }
 
 int main(void) {
@@ -204,7 +206,7 @@ int main(void) {
     int *wastedbits = malloc(compressedwords);
     
     for (i = 0; i < compressedwords; i++) {
-      wastedbits[i] = countwastedbits(compresseddgaps[i]);
+      wastedbits[i] = countwastedbits(compresseddgaps->items[i]);
     }
 
 
