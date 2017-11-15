@@ -219,7 +219,8 @@ int main(void) {
     //        };
     //        printf("\n");
     //    }
-    
+
+    //have forgotten to free items in flexarrays... needs fixing
     free(compresseddgaps);
     free(dgaps);
     free(docnums);
