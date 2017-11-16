@@ -210,6 +210,8 @@ int main(void) {
     for (i = 0; i < compressedwords; i++) {
         decompress(compresseddgaps->items[i], decompressed, numints);
     }
+    
+    // array to hold bit length frequencies
     for (i = 0; i < arraysize; i++) {
         gap = dgaps[i];
         if (gap > maxgap) {
@@ -218,9 +220,7 @@ int main(void) {
     }
     printf("maxgap: %d\n", maxgap);
     freqarraysize = fls(maxgap) + 1;
-    
-    // array to hold bit length frequencies
-    int *bitlengthfreqs = malloc(freqarraysize * sizeof bitlengthfreqs[0]);
+        int *bitlengthfreqs = malloc(freqarraysize * sizeof bitlengthfreqs[0]);
     for (i = 0; i < freqarraysize; i++) {
         bitlengthfreqs[i] = 0;
     }
@@ -245,7 +245,6 @@ int main(void) {
         }
     }
     
-    
     printf("unrestricted bit lengths:\n");
     for (i = 0; i < freqarraysize; i++) {
         printf("number of dgaps requiring %llu bits: %d\n", i, bitlengthfreqs[i]);
@@ -266,7 +265,8 @@ int main(void) {
     }
     int wastedperword = sumwasted / compressedwords;
     printf("average internally wasted bits per word: %d\n", wastedperword);
-
+    double ratio = (double) compressedwords / (double) arraysize;
+    printf("compression ratio: %.2f\n", ratio);
     
     //    for (i = 0; i < arraysize; i++) {
     //        printf("original: %llu ", dgaps[i]);
