@@ -46,14 +46,14 @@ int compare_ints(const void *a, const void *b) {
 
 int main(void) {
     int i, bits, sum, prev = 0;
-    int freqarraysize, arraysize = 1000;
+    int freqarraysize, arraysize = 5000;
     int gap = 0, maxgap = 0;
     int *docnums, *dgaps;
 
     // make set of random numbers to use as document numbers
     docnums = malloc(arraysize * sizeof docnums[0]);
     for (i = 0; i < arraysize; i++) {
-        docnums[i] = (rand() % (arraysize * 50000)/100);
+        docnums[i] = rand() % (arraysize * 100);
     }
 
     // sort them and convert to dgaps
