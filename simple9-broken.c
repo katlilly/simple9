@@ -1,10 +1,10 @@
 #include<stdio.h>
 #include<stdlib.h>
-//#include<strings.h>
+#include<strings.h>
 #include<stdint.h>
 #include "mylib.h"
 #include "flexarray.h"
-#include "fls.h"
+//#include "fls.h"
 
 #define NUMBER_OF_DOCS (1024 * 1024 * 128)
 
@@ -77,7 +77,7 @@ uint64_t compress(uint64_t selector, int thisindex, uint64_t *dgaps) {
 
 // uses global variable <numints> to keep track of filling decompressed array
 // have added
-void decompress(uint64_t word, uint64_t *decompressed, int numints) {
+void decompress(uint64_t word, flexarray decompressed, int numints) {
     int i;
     uint64_t selector, mask, payload, temp;
     selector = word & 0xf;
@@ -86,8 +86,7 @@ void decompress(uint64_t word, uint64_t *decompressed, int numints) {
     payload = word >> 4;
     for (i = 0; i < (28/selector) ; i++) {
         temp = payload & mask;
-        decompressed[numints++] = temp;
-        //fappend(decompressed, temp);
+        fappend(decompressed, temp);
         payload = payload >> selector;
     }
 }
@@ -119,10 +118,8 @@ int main(int argc, char *argv[]) {
     uint64_t selector;
     uint64_t arraysize = 5000, i, prev = 0;
     uint64_t *dgaps;
-    uint64_t *compressed, *decompressed;
-    uint64_t current, elements;
-    int bits, maxbits;
-    uint64_t index;
+    uint64_t bits, maxbits, current, elements;
+    uint64_t index = 0;
     int freqarraysize, bitsused;
     int gap = 0, maxgap = 0;
     
@@ -136,9 +133,6 @@ int main(int argc, char *argv[]) {
     
     postings_list = malloc(NUMBER_OF_DOCS * sizeof postings_list[0]);
     dgaps = malloc(NUMBER_OF_DOCS * sizeof dgaps[0]);
-    compressed = malloc(NUMBER_OF_DOCS * sizeof compressed[0]);
-    decompressed = malloc(NUMBER_OF_DOCS * sizeof decompressed[0]);
-
     
     //printf("Using: %s\n", filename);
     FILE *fp;
@@ -146,17 +140,17 @@ int main(int argc, char *argv[]) {
         exit(printf("Cannot open %s\n", filename));
     }
     
-    //flexarray compresseddgaps = flexarray_new();
-    //flexarray decompressed = flexarray_new();
-    //selectorfreqs = malloc(32 * sizeof selectorfreqs[0]);
-    //for (i = 0; i < 32; i++) {
-    //    selectorfreqs[i] = 0;
-    //}
-    //freqarraysize = 32;
-    //int *bitlengthfreqs = malloc(freqarraysize * sizeof bitlengthfreqs[0]);
-    //for (i = 0; i < freqarraysize; i++) {
-    //    bitlengthfreqs[i] = 0;
-    //}
+    flexarray compresseddgaps = flexarray_new();
+    flexarray decompressed = flexarray_new();
+    selectorfreqs = malloc(32 * sizeof selectorfreqs[0]);
+    for (i = 0; i < 32; i++) {
+        selectorfreqs[i] = 0;
+    }
+    freqarraysize = 32;
+    int *bitlengthfreqs = malloc(freqarraysize * sizeof bitlengthfreqs[0]);
+    for (i = 0; i < freqarraysize; i++) {
+        bitlengthfreqs[i] = 0;
+    }
     //flexarray f = flexarray_new();
     //
     //while (1 == scanf("%d", &item)) {
@@ -197,18 +191,8 @@ int main(int argc, char *argv[]) {
             dgaps[i] = postings_list[i] - prev;
             prev = postings_list[i];
         }
-        printf("dgaps: \n");
-        for (i = 0; i < length; i++) {
-            printf("%llu, ", dgaps[i]);
-        }
-        printf("\n");
         
-        
-        // choose selector
-        index = 0;
-        numcompressedints = 0;
-        compressedwords = 0;
-        
+        // chose selector
         while (index < length) {
             elements = 0;
             maxbits = 0;
@@ -218,12 +202,11 @@ int main(int argc, char *argv[]) {
             while (bitsused < 32) {
                 current = dgaps[index++];
                 bits = fls(current);
-                //printf("current: %llu, bits: %d\n", current, bits);
+                //printf("current: %llu, bits: %llu", current, bits);
                 elements++;
                 if (bits > maxbits) {
                     maxbits = bits;
                 }
-                //printf("maxbits: %d\n", maxbits);
                 bitsused = maxbits * elements;
             }
             elements--;
@@ -241,84 +224,82 @@ int main(int argc, char *argv[]) {
             } else {
                 selector = maxbits;
             }
-            printf("chose selector %llu\n", selector);
-
+            
             uint64_t temp = compress(selector, numcompressedints, dgaps);
-            compressed[compressedwords++] = temp;
-            //fappend(compresseddgaps, temp);
-            //compressedwords++;
+            fappend(compresseddgaps, temp);
+            compressedwords++;
         }
-
-        printf("%u integers were compressed into %d words\n", length, compressedwords);
-
-       printf("first compressed word: \n");
-    print_binary(compressed[0]);
-     printf("0x%16llX\n", compressed[0]);
-
+        
+        printf("%llu integers were compressed into %d words\n", arraysize, compressedwords);
+        
+        //printf("first compressed word: \n");
+        //print_binary(compresseddgaps->items[0]);
+        //printf("0x%16llX\n", compresseddgaps->items[0]);
+        
         // array to store decompressed numbers
         // moved this outside of loop
-
-
-//        // do the decompression
-//        numints = 0;
-//        for (i = 0; i < compressedwords; i++) {
-//            decompress(compressed[i], decompressed, numints);
-//        }
-
-//        // array to hold bit length frequencies
-//        for (i = 0; i < arraysize; i++) {
-//            gap = dgaps[i];
-//            if (gap > maxgap) {
-//                maxgap = gap;
-//            }
-//        }
-//        printf("maxgap: %d\n", maxgap);
-//        //moved frequency array initialisation stuff out of loop
-//
-//
-//        for (i = 0; i < freqarraysize; i++) {
-//            bitlengthfreqs[i] = 0;
-//        }
-//        for (i = 0; i < arraysize; i++) {
-//            bits = fls(dgaps[i]);
-//            if (bits < 2) { //won't be zeros in real data, ones should be run length encoded
-//                bits = 1;
-//                bitlengthfreqs[bits]++;
-//            } else if (bits < 17) {
-//                bitlengthfreqs[bits]++;
-//            } else if (bits < 32) {
-//                bits = 16;
-//                bitlengthfreqs[bits]++;
-//            } else if (bits == 32) {
-//                bitlengthfreqs[bits]++;
-//            } else {
-//                return(EXIT_FAILURE);
-//            }
-//        }
-//
-//        printf("unrestricted bit lengths:\n");
-//        for (i = 0; i < freqarraysize; i++) {
-//            printf("number of dgaps requiring %llu bits: %d\n", i, bitlengthfreqs[i]);
-//        }
-//
-//        // print selector use stats
-//        for (i = 0; i < 16; i++) {
-//            printf("selector %llu used %d times\n", i, selectorfreqs[i]);
-//        }
-//        uint64_t *wastedbits = malloc(compressedwords);
-//        for (i = 0; i < compressedwords; i++) {
-//            wastedbits[i] = countwastedbits(compresseddgaps->items[i]);
-//            //printf("%llu bits wasted in %lluth word\n", wastedbits[i], i);
-//        }
-//        int sumwasted = 0;
-//        for (i = 0; i < compressedwords; i++) {
-//            sumwasted += wastedbits[i];
-//        }
-//        int wastedperword = sumwasted / compressedwords;
-//        printf("average internally wasted bits per word: %d\n", wastedperword);
-//        double ratio = (double) compressedwords / (double) arraysize;
-//        printf("compression ratio: %.2f\n", ratio);
-//
+       
+        
+        // do the decompression
+        numints = 0;
+        for (i = 0; i < compressedwords; i++) {
+            decompress(compresseddgaps->items[i], decompressed, numints);
+        }
+        
+        // array to hold bit length frequencies
+        for (i = 0; i < arraysize; i++) {
+            gap = dgaps[i];
+            if (gap > maxgap) {
+                maxgap = gap;
+            }
+        }
+        printf("maxgap: %d\n", maxgap);
+        //moved frequency array initialisation stuff out of loop
+        
+        
+        for (i = 0; i < freqarraysize; i++) {
+            bitlengthfreqs[i] = 0;
+        }
+        for (i = 0; i < arraysize; i++) {
+            bits = fls(dgaps[i]);
+            if (bits < 2) { //won't be zeros in real data, ones should be run length encoded
+                bits = 1;
+                bitlengthfreqs[bits]++;
+            } else if (bits < 17) {
+                bitlengthfreqs[bits]++;
+            } else if (bits < 32) {
+                bits = 16;
+                bitlengthfreqs[bits]++;
+            } else if (bits == 32) {
+                bitlengthfreqs[bits]++;
+            } else {
+                return(EXIT_FAILURE);
+            }
+        }
+        
+        printf("unrestricted bit lengths:\n");
+        for (i = 0; i < freqarraysize; i++) {
+            printf("number of dgaps requiring %llu bits: %d\n", i, bitlengthfreqs[i]);
+        }
+        
+        // print selector use stats
+        for (i = 0; i < 16; i++) {
+            printf("selector %llu used %d times\n", i, selectorfreqs[i]);
+        }
+        uint64_t *wastedbits = malloc(compressedwords);
+        for (i = 0; i < compressedwords; i++) {
+            wastedbits[i] = countwastedbits(compresseddgaps->items[i]);
+            //printf("%llu bits wasted in %lluth word\n", wastedbits[i], i);
+        }
+        int sumwasted = 0;
+        for (i = 0; i < compressedwords; i++) {
+            sumwasted += wastedbits[i];
+        }
+        int wastedperword = sumwasted / compressedwords;
+        printf("average internally wasted bits per word: %d\n", wastedperword);
+        double ratio = (double) compressedwords / (double) arraysize;
+        printf("compression ratio: %.2f\n", ratio);
+        
         //free(decompressed->items);
         //free(decompressed);
         //free(dgaps);
@@ -335,8 +316,7 @@ int main(int argc, char *argv[]) {
     //    }
     
     //have forgotten to free items in flexarrays... needs fixing
-    //free(compresseddgaps);
-    free(postings_list);
+    free(compresseddgaps);
     free(dgaps);
     //free(docnums);
     

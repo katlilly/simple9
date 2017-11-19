@@ -3,7 +3,7 @@
 #include<strings.h>
 #include<stdint.h>
 #include "flexarray.h"
-#include "fls.h"
+//#include "fls.h"
 
 #define NUMBER_OF_DOCS (1024 * 1024 * 128)
 
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
     }
     printf("\n");
 
-    //convert to dgaps
+    //convert docnums to dgaps
     prev = 0;
     for (i = 0; i < length; i++) {
       dgaps[i] = postings_list[i] - prev;
@@ -211,8 +211,8 @@ int main(int argc, char *argv[]) {
         compressedwords++;
     }
 
-    //something is broken here, apparent compression ratio is way too good
-    printf("%llu integers were compressed into %d words\n", length, compressedwords);
+    
+    printf("%u integers were compressed into %d words\n", length, compressedwords);
     
     
   }//end while
