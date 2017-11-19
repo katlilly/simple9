@@ -158,65 +158,188 @@ int main(int argc, char *argv[]) {
     }
     printf("%u: ", (unsigned)length);
 
-  
+             
+
     // write docnums of current postings list into the array
     for (uint32_t *where = postings_list; where < postings_list + length; where++) {
       printf("%u ", (unsigned)*where);
     }
     printf("\n");
 
-    //convert to dgaps
+    // convert list to dgaps
     prev = 0;
+    //printf("converted to dgaps: \n");
     for (i = 0; i < length; i++) {
       dgaps[i] = postings_list[i] - prev;
       prev = postings_list[i];
+      printf("%u, ", dgaps[i]);
     }
+    printf("\n");
 
 
+    // do the compression on one dgap list
+    if (length == 1) {
+      printf("not compressing single element lists\n");
+    } else {
+      while (index < arraysize) {
+	elements = 0;
+	maxbits = 0;
+	index = numcompressedints;
+        
+	bitsused = 0;
+	printf("chosing selector...\n");
+	// changed check condition from 29 to 32 bits temporarily
+	while (bitsused < 32) {
+	  current = dgaps[index++];
+	  bits = fls(current);
+	  elements++;
+	  if (bits > maxbits) {
+	    maxbits = bits;
+	  }
+	  bitsused = maxbits * elements;
+	}
+	elements--;
+
+	//changed check condition from 28 to 32 bits temporarily
+	if (maxbits > 32) {
+	  printf("maxbits: %u\n", maxbits);
+	  return(EXIT_FAILURE);
+	} else if (maxbits > 14) {
+	  selector = 28;
+	} else if (maxbits > 9) {
+	  selector = 14;
+	} else if (maxbits > 7) {
+	  selector = 9;
+	} else if (maxbits > 5) {
+	  selector = 7;
+	} else {
+	  selector = maxbits;
+	}
+
+	printf("ready to compress one word...\n");
+	uint32_t temp = compress(selector, numcompressedints, dgaps);
+	fappend(compresseddgaps, temp);
+	printf("current value of compressedwords: %u\n", compressedwords);
+	compressedwords++;
+      }
+      
+      printf("%u integers were compressed into %d words\n", length, compressedwords);
     
-    compressedwords = 0;  
-    while (index < length) {
-        elements = 0;
-        maxbits = 0;
-        index = numcompressedints;
-        
-        bitsused = 0;
-        while (bitsused < 29) {
-            current = dgaps[index++];
-            bits = fls(current);
-            elements++;
-            if (bits > maxbits) {
-                maxbits = bits;
-            }
-            bitsused = maxbits * elements;
-        }
-        elements--;
-        
-        if (maxbits > 28) {
-            return(EXIT_FAILURE);
-        } else if (maxbits > 14) {
-            selector = 28;
-        } else if (maxbits > 9) {
-            selector = 14;
-        } else if (maxbits > 7) {
-            selector = 9;
-        } else if (maxbits > 5) {
-            selector = 7;
-        } else {
-            selector = maxbits;
-        }
-       
-        uint64_t temp = compress(selector, numcompressedints, dgaps);
-        fappend(compresseddgaps, temp);
-        compressedwords++;
+    }//end while loop for reading in 
+ 
+ 
+
+   
+  }  
+    
+    
+  //flexarray f = flexarray_new();
+  //
+  //while (1 == scanf("%d", &item)) {
+  //    fappend(f, item);
+  //}
+  //arraysize = getsize(f);
+  //flexarray_sort(f);
+  //flexarray_print(f);
+    
+  docnums = malloc(arraysize * sizeof docnums[0]);
+  for (i = 0; i < arraysize; i++) {
+    docnums[i] = rand() % (arraysize * 100);
+  }
+    
+  qsort(docnums, arraysize, sizeof docnums[0], compare_ints);
+  
+  
+  
+    
+ 
+  //printf("first compressed word: \n");
+  //print_binary(compresseddgaps->items[0]);
+  //printf("0x%16llX\n", compresseddgaps->items[0]);
+    
+  // array to store decompressed numbers
+  flexarray decompressed = flexarray_new();
+  selectorfreqs = malloc(16 * sizeof selectorfreqs[0]);
+  for (i = 0; i < 16; i++) {
+    selectorfreqs[i] = 0;
+  }
+    
+  // do the decompression
+  numints = 0;
+  for (i = 0; i < compressedwords; i++) {
+    decompress(compresseddgaps->items[i], decompressed, numints);
+  }
+    
+  // array to hold bit length frequencies
+  for (i = 0; i < arraysize; i++) {
+    gap = dgaps[i];
+    if (gap > maxgap) {
+      maxgap = gap;
     }
+  }
+  printf("maxgap: %d\n", maxgap);
+  freqarraysize = fls(maxgap) + 1;
+  int *bitlengthfreqs = malloc(freqarraysize * sizeof bitlengthfreqs[0]);
+  for (i = 0; i < freqarraysize; i++) {
+    bitlengthfreqs[i] = 0;
+  }
 
-    //something is broken here, apparent compression ratio is way too good
-    printf("%llu integers were compressed into %d words\n", length, compressedwords);
+  for (i = 0; i < freqarraysize; i++) {
+    bitlengthfreqs[i] = 0;
+  }
+  for (i = 0; i < arraysize; i++) {
+    bits = fls(dgaps[i]);
+    if (bits < 2) { //won't be zeros in real data, ones should be run length encoded
+      bits = 1;
+      bitlengthfreqs[bits]++;
+    } else if (bits < 17) {
+      bitlengthfreqs[bits]++;
+    } else if (bits < 32) {
+      bits = 16;
+      bitlengthfreqs[bits]++;
+    } else if (bits == 32) {
+      bitlengthfreqs[bits]++;
+    } else {
+      return(EXIT_FAILURE);
+    }
+  }
     
+  printf("unrestricted bit lengths:\n");
+  for (i = 0; i < freqarraysize; i++) {
+    printf("number of dgaps requiring %u bits: %d\n", i, bitlengthfreqs[i]);
+  }
     
-  }//end while
+  // print selector use stats
+  for (i = 0; i < 16; i++) {
+    printf("selector %u used %d times\n", i, selectorfreqs[i]);
+  }
+  uint32_t *wastedbits = malloc(compressedwords);
+  for (i = 0; i < compressedwords; i++) {
+    wastedbits[i] = countwastedbits(compresseddgaps->items[i]);
+    //printf("%u bits wasted in %uth word\n", wastedbits[i], i);
+  }
+  int sumwasted = 0;
+  for (i = 0; i < compressedwords; i++) {
+    sumwasted += wastedbits[i];
+  }
+  int wastedperword = sumwasted / compressedwords;
+  printf("average internally wasted bits per word: %d\n", wastedperword);
+  double ratio = (double) compressedwords / (double) arraysize;
+  printf("compression ratio: %.2f\n", ratio);
+    
+  //    for (i = 0; i < arraysize; i++) {
+  //        printf("original: %u ", dgaps[i]);
+  //        printf("decompressed: %u ", decompressed->items[i]);
+  //        if (dgaps[i] != decompressed->items[i]) {
+  //            printf("wrong");
+  //        };
+  //        printf("\n");
+  //    }
 
-
+  //have forgotten to free items in flexarrays... needs fixing
+  flexarray_free(compresseddgaps);
+  free(dgaps);
+  free(docnums);
+    
   return 0;
 }

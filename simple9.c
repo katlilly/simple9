@@ -4,6 +4,7 @@
 #include<stdint.h>
 #include "mylib.h"
 #include "flexarray.h"
+#include "fls.h"
 
 int compressedwords = 0;    //number of 32 bit compressed words
 int numcompressedints = 0;  //keeps track of number of integers compressed
@@ -18,17 +19,17 @@ struct flexarrayrec {
 };
 
 flexarray flexarray_new() {
-    flexarray result = emalloc(sizeof *result);
+    flexarray result = malloc(sizeof *result);
     result->capacity = 2;
     result->itemcount = 0;
-    result->items = emalloc(result->capacity * sizeof result->items[0]);
+    result->items = malloc(result->capacity * sizeof result->items[0]);
     return result;
 }
 
 void fappend(flexarray f, uint64_t num) {
     if (f->itemcount == f->capacity) {
         f->capacity *= 2;
-        f->items = erealloc(f->items, f->capacity * sizeof f->items[0]);
+        f->items = realloc(f->items, f->capacity * sizeof f->items[0]);
     }
     f->items[f->itemcount++] = num;
 }
@@ -130,14 +131,14 @@ int main(void) {
     //flexarray_sort(f);
     //flexarray_print(f);
     
-    docnums = emalloc(arraysize * sizeof docnums[0]);
+    docnums = malloc(arraysize * sizeof docnums[0]);
     for (i = 0; i < arraysize; i++) {
         docnums[i] = rand() % (arraysize * 100);
     }
     
     qsort(docnums, arraysize, sizeof docnums[0], compare_ints);
   
-    dgaps = emalloc(arraysize * sizeof dgaps[0]);
+    dgaps = malloc(arraysize * sizeof dgaps[0]);
     
     for (i = 0; i < arraysize; i++) {
         dgaps[i] = docnums[i] - prev;
