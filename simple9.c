@@ -10,15 +10,15 @@
 
 static uint32_t *postings_list;
 int compressedwords = 0;    //number of 32 bit compressed words
-int numcompressedints = 0;  //keeps track of number of integers compressed
+int numcompresseddgaps = 0;  //keeps track of number of integers compressed
 int numints = 0;            //keep track of number of integers while decompressing
 int *selectorfreqs;         //values are set in decompression function, used for testing of              selector selection algorithm
 
 
 struct flexarrayrec {
-    uint64_t capacity;
-    uint64_t itemcount;
-    uint64_t *items;
+    uint32_t capacity;
+    uint32_t itemcount;
+    uint32_t *items;
 };
 
 flexarray flexarray_new() {
@@ -29,7 +29,7 @@ flexarray flexarray_new() {
     return result;
 }
 
-void fappend(flexarray f, uint64_t num) {
+void fappend(flexarray f, uint32_t num) {
     if (f->itemcount == f->capacity) {
         f->capacity *= 2;
         f->items = realloc(f->items, f->capacity * sizeof f->items[0]);
@@ -40,11 +40,11 @@ void fappend(flexarray f, uint64_t num) {
 void flexarray_print(flexarray f) {
     int i;
     for (i = 0; i < f->itemcount; i++) {
-        printf("%llu\n", f->items[i]);
+        printf("%u\n", f->items[i]);
     }
 }
 
-void print_binary(uint64_t num) {
+void print_binary(uint32_t num) {
     int i;
     for (i = 31; i >= 0; i--) {
         if (num & (1<<i)) {
@@ -56,12 +56,12 @@ void print_binary(uint64_t num) {
     printf("\n");
 }
 
-uint64_t compress(uint64_t selector, int thisindex, uint64_t *dgaps) {
-    uint64_t code, shiftedcode, result = 0;
+uint32_t compress(uint32_t selector, int thisindex, uint32_t *dgaps) {
+    uint32_t code, shiftedcode, result = 0;
     int numcodes = 0;
     do {
         result = result | selector;
-        code = dgaps[numcompressedints];
+        code = dgaps[numcompresseddgaps];
         //printf("0x%16llX\n", code);
         //printf("shifted code: \n");
         shiftedcode = code << (4 + (numcodes * selector));
@@ -69,7 +69,7 @@ uint64_t compress(uint64_t selector, int thisindex, uint64_t *dgaps) {
         result = result | shiftedcode;
         //printf("current state of compressed word: \n");
         //printf("0x%16llX\n", result);
-        numcompressedints++;
+        numcompresseddgaps++;
         numcodes++;
     } while (((numcodes + 1) * selector) < 29);
     return result;
@@ -77,9 +77,9 @@ uint64_t compress(uint64_t selector, int thisindex, uint64_t *dgaps) {
 
 // uses global variable <numints> to keep track of filling decompressed array
 // have added
-void decompress(uint64_t word, uint64_t *decompressed, int numints) {
+void decompress(uint32_t word, uint32_t *decompressed, int numints) {
     int i;
-    uint64_t selector, mask, payload, temp;
+    uint32_t selector, mask, payload, temp;
     selector = word & 0xf;
     selectorfreqs[selector]++;
     mask = (1 << (selector)) - 1;
@@ -100,9 +100,9 @@ int compare_ints(const void *a, const void *b) {
 }
 
 // this function repeats most of what the decompression function does
-int countwastedbits(uint64_t word) {
+int countwastedbits(uint32_t word) {
     int i;
-    uint64_t selector, mask, payload, temp, leadingzeros = 0;
+    uint32_t selector, mask, payload, temp, leadingzeros = 0;
     selector = word & 0xf;
     selectorfreqs[selector]++;
     mask = (1 << (selector)) - 1;
@@ -116,14 +116,14 @@ int countwastedbits(uint64_t word) {
 }
 
 int main(int argc, char *argv[]) {
-    uint64_t selector;
-    uint64_t arraysize = 5000, i, prev = 0;
-    uint64_t *dgaps;
-    uint64_t *compressed, *decompressed;
-    uint64_t current, elements;
+    uint32_t selector;
+    uint32_t i, prev = 0; //arraysize = 5000;
+    uint32_t *dgaps;
+    uint32_t *compressed, *decompressed;
+    uint32_t current, elements;
     int bits, maxbits;
-    uint64_t index;
-    int freqarraysize, bitsused;
+    uint32_t index;
+    int bitsused;
     int gap = 0, maxgap = 0;
     
     const char *filename;
@@ -199,20 +199,20 @@ int main(int argc, char *argv[]) {
         }
         printf("dgaps: \n");
         for (i = 0; i < length; i++) {
-            printf("%llu, ", dgaps[i]);
+            printf("%u, ", dgaps[i]);
         }
         printf("\n");
         
         
         // choose selector
         index = 0;
-        numcompressedints = 0;
+        numcompresseddgaps = 0;
         compressedwords = 0;
         
         while (index < length) {
             elements = 0;
             maxbits = 0;
-            index = numcompressedints;
+            index = numcompresseddgaps;
             
             bitsused = 0;
             while (bitsused < 32) {
@@ -228,7 +228,8 @@ int main(int argc, char *argv[]) {
             }
             elements--;
             
-            if (maxbits > 32) {
+            if (maxbits > 28) {
+                printf("can't compress numbers larger than 28 bits here\n");
                 return(EXIT_FAILURE);
             } else if (maxbits > 14) {
                 selector = 28;
@@ -241,20 +242,20 @@ int main(int argc, char *argv[]) {
             } else {
                 selector = maxbits;
             }
-            printf("chose selector %llu\n", selector);
+            printf("chose selector %u\n", selector);
 
-            uint64_t temp = compress(selector, numcompressedints, dgaps);
+            uint32_t temp = compress(selector, numcompresseddgaps, dgaps);
             compressed[compressedwords++] = temp;
             //fappend(compresseddgaps, temp);
             //compressedwords++;
         }
-
+        
         printf("%u integers were compressed into %d words\n", length, compressedwords);
-
-       printf("first compressed word: \n");
-    print_binary(compressed[0]);
-     printf("0x%16llX\n", compressed[0]);
-
+        
+        printf("first compressed word: \n");
+        print_binary(compressed[0]);
+        printf("0x%8X\n", compressed[0]);
+        
         // array to store decompressed numbers
         // moved this outside of loop
 
@@ -305,7 +306,7 @@ int main(int argc, char *argv[]) {
 //        for (i = 0; i < 16; i++) {
 //            printf("selector %llu used %d times\n", i, selectorfreqs[i]);
 //        }
-//        uint64_t *wastedbits = malloc(compressedwords);
+//        numcompresseddgaps *wastedbits = malloc(compressedwords);
 //        for (i = 0; i < compressedwords; i++) {
 //            wastedbits[i] = countwastedbits(compresseddgaps->items[i]);
 //            //printf("%llu bits wasted in %lluth word\n", wastedbits[i], i);
