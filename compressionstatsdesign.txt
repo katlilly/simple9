@@ -1,0 +1,27 @@
+global variables
+----------------
+
+int compressedwords
+int numcompresseddgaps
+int numints (not necessary?) used in decompression
+
+
+arrays
+------
+allocated in main and values overwritten for each list
+
+static uint32_t *postings_list - global
+
+compressed, decompressed, allocated in main outside of loop
+
+
+
+functions
+---------
+
+uint32_t compress(uint32_t selector, int thisindex, uint32_t *dgaps)
+need to change the way it keeps track on index
+
+
+void decompress(uint32_t word, uint32_t *decompressed, int numints)
+

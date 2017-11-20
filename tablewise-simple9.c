@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "fls.h"
 //#include <vector>
-#include "maths.h"
-#include "asserts.h"
+//#include "maths.h"
+//#include "asserts.h"
 //#include "compress_integer_simple_9.h"
 
 
@@ -109,6 +110,34 @@ const size_t row_for_bits_needed[] =
     };
 
 
+/*
+ MATHS_CEILING_LOG2_ANSWER[]
+ ---------------------------
+ */
+/*!
+ @brief Lookup table to compute ceil(log2(x))
+ */
+//static constexpr uint8_t maths_ceiling_log2_answer[0x100] =
+static const uint8_t maths_ceiling_log2[0x100] =
+{
+    0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8
+};
+
 
 int compare_ints(const void *a, const void *b) {
     const int *ia = (const int *) a;
@@ -141,7 +170,8 @@ size_t encode(uint32_t *dest, size_t length, uint32_t *source, size_t source_int
             */
             for (size_t offset = 0; offset < remaining && bitmask; offset++)
                 {
-                    bitmask &= can_pack_table[row_for_bits_needed[maths::ceiling_log2(source[pos + offset])] + offset];
+                    bitmask &= can_pack_table[row_for_bits_needed[maths_ceiling_log2(source[pos + offset])] + offset];
+                    //bitmask &= can_pack_table[row_for_bits_needed[maths::ceiling_log2(source[pos + offset])] + offset];
                     last_bitmask |= (bitmask & invalid_masks_for_offset[offset + 1]);
                 }
 
@@ -154,7 +184,8 @@ size_t encode(uint32_t *dest, size_t length, uint32_t *source, size_t source_int
             /*
               Get position of lowest set bit
             */
-            uint32_t mask_type = maths::find_first_set_bit((uint32_t)last_bitmask);
+            uint32_t mask_type = fls((uint32_t)last_bitmask);
+            //uint32_t mask_type = maths::find_first_set_bit((uint32_t)last_bitmask);
             size_t num_to_pack = ints_packed_table[mask_type];
 
             /*
@@ -183,7 +214,7 @@ int main(void) {
     decompressed = malloc(length * sizeof decompressed[0]);
 
 
-    // start make fake data
+    // start make fake data for testing
     source = malloc(length * sizeof source[0]);
     for (i = 0; i < length; i++) {
         source[i] = rand() % 972;
