@@ -1,345 +1,394 @@
-#include<stdio.h>
-#include<stdlib.h>
-//#include<strings.h>
-#include<stdint.h>
-#include "mylib.h"
-#include "flexarray.h"
-#include "fls.h"
-
-#define NUMBER_OF_DOCS (1024 * 1024 * 128)
-
-static uint32_t *postings_list;
-int compressedwords = 0;    //number of 32 bit compressed words
-int numcompresseddgaps = 0;  //keeps track of number of integers compressed
-int numints = 0;            //keep track of number of integers while decompressing
-int *selectorfreqs;         //values are set in decompression function, used for testing of              selector selection algorithm
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <strings.h>
+//#include "fls.h"
+//#include <vector>
+//#include "maths.h"
+//#include "asserts.h"
+//#include "compress_integer_simple_9.h"
 
 
-struct flexarrayrec {
-    uint32_t capacity;
-    uint32_t itemcount;
-    uint32_t *items;
+/*
+   BITS_TO_USE
+   -----------
+   the number of bits that will be used to store an integer given the
+   bit width of the integer. Index is bitwidth, value is bits/code.
+*/
+const size_t bits_to_use[] =
+    {
+        1,  1,  2,  3,  4,  5,  7,  7, 
+        9,  9, 14, 14, 14, 14, 14, 28, 
+        28, 28, 28, 28, 28, 28, 28, 28, 
+        28, 28, 28, 28, 28, 64, 64, 64,
+        64, 64, 64, 64, 64, 64, 64, 64,
+        64, 64, 64, 64, 64, 64, 64, 64,
+        64, 64, 64, 64, 64, 64, 64, 64,
+        64, 64, 64, 64, 64, 64, 64, 64
+    };
+
+/*
+  TABLE_ROW
+  ---------
+  The row of the table to use given the number of
+  integers we can pack into the word. Index is number of ints can be
+  packed, value at index is row of bits_to_use table
+*/
+const size_t table_row[] =
+    {
+        0, 1, 2, 3, 4, 4, 5, 5, 
+        6, 6, 6, 6, 6, 7, 7, 7, 
+        7, 7, 7, 7, 7, 7, 7, 7, 
+        7, 7, 7, 8, 8
+    };
+
+/*
+  COMPRESS_INTEGER_SIMPLE_9::SIMPLE9_SHIFT_TABLE
+  ----------------------------------------------
+  Number of bits to shift across when packing - is sum of prior packed ints
+*/
+const size_t simple9_shift_table[] =
+    {
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+        0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+        0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        0, 4, 8, 12, 16, 20, 24, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+        0, 5, 10, 15, 20, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+        0, 7, 14, 21, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+        0, 9, 18, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+        0, 14, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+        0, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28
+    };
+
+/*
+  COMPRESS_INTEGER_SIMPLE_9::INTS_PACKED_TABLE
+  --------------------------------------------
+  Number of integers packed into a 32-bit word, given its mask type
+*/
+const size_t ints_packed_table[] =
+    {
+        28, 14, 9, 7, 5, 4, 3, 2, 1
+    };
+
+/*
+  COMPRESS_INTEGER_SIMPLE_9::CAN_PACK_TABLE
+  -----------------------------------------
+  Bitmask map for valid masks at an offset (column) for some num_bits_needed (row).
+*/
+const size_t can_pack_table[] =
+    {
+        0x01ff, 0x00ff, 0x007f, 0x003f, 0x001f, 0x000f, 0x000f, 0x0007, 0x0007, 0x0003, 0x0003, 0x0003, 0x0003, 0x0003, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001, 0x0001,
+        0x01fe, 0x00fe, 0x007e, 0x003e, 0x001e, 0x000e, 0x000e, 0x0006, 0x0006, 0x0002, 0x0002, 0x0002, 0x0002, 0x0002, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+        0x01fc, 0x00fc, 0x007c, 0x003c, 0x001c, 0x000c, 0x000c, 0x0004, 0x0004, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+        0x01f8, 0x00f8, 0x0078, 0x0038, 0x0018, 0x0008, 0x0008, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+        0x01f0, 0x00f0, 0x0070, 0x0030, 0x0010, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+        0x01e0, 0x00e0, 0x0060, 0x0020, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+        0x01c0, 0x00c0, 0x0040, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+        0x0180, 0x0080, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+        0x0100, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+        0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
+    };
+
+/*
+  COMPRESS_INTEGER_SIMPLE_9::INVALID_MASKS_FOR_OFFSET
+  ---------------------------------------------------
+  We AND out masks for offsets where we don't know if we can fully pack for that offset
+*/
+const size_t invalid_masks_for_offset[] =
+    {
+        0x0000, 0x0100, 0x0180, 0x01c0, 0x01e0, 0x01f0, 0x01f0, 0x01f8, 0x01f8, 0x01fc, 0x01fc, 0x01fc, 0x01fc, 0x01fc, 0x01fe, 0x01fe, 0x01fe, 0x01fe, 0x01fe, 0x01fe, 0x01fe, 0x01fe, 0x01fe, 0x01fe, 0x01fe, 0x01fe, 0x01fe, 0x01fe, 0x01ff
+    };
+
+/*
+  COMPRESS_INTEGER_SIMPLE_9::ROW_FOR_BITS_NEEDED
+  ----------------------------------------------
+  Translates the 'bits_needed' to the appropriate 'row' offset for use with can_pack table.
+*/
+const size_t row_for_bits_needed[] =
+    {
+        0, 0, 28, 56, 84, 112, 140, 140, 168, 168, 196, 196, 196, 196, 196, 224, 224, 224, 224, 224, 224, 224, 224, 224, 224, 224, 224, 224, 224,			// Valid
+        252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252, 252		// Overflow
+    };
+
+
+/*
+ MATHS_CEILING_LOG2_ANSWER[]
+ ---------------------------
+ */
+/*!
+ @brief Lookup table to compute ceil(log2(x))
+ */
+//static constexpr uint8_t maths_ceiling_log2_answer[0x100] =
+const uint8_t maths_ceiling_log2[0x100] =
+{
+    0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8
 };
 
-flexarray flexarray_new() {
-    flexarray result = malloc(sizeof *result);
-    result->capacity = 2;
-    result->itemcount = 0;
-    result->items = malloc(result->capacity * sizeof result->items[0]);
-    return result;
-}
-
-void fappend(flexarray f, uint32_t num) {
-    if (f->itemcount == f->capacity) {
-        f->capacity *= 2;
-        f->items = realloc(f->items, f->capacity * sizeof f->items[0]);
-    }
-    f->items[f->itemcount++] = num;
-}
-
-void flexarray_print(flexarray f) {
-    int i;
-    for (i = 0; i < f->itemcount; i++) {
-        printf("%u\n", f->items[i]);
-    }
-}
-
-void print_binary(uint32_t num) {
-    int i;
-    for (i = 31; i >= 0; i--) {
-        if (num & (1<<i)) {
-            printf("1");
-        } else {
-            printf("0");
-        }
-    }
-    printf("\n");
-}
-
-uint32_t compress(uint32_t selector, int thisindex, uint32_t *dgaps) {
-    uint32_t code, shiftedcode, result = 0;
-    int numcodes = 0;
-    do {
-        result = result | selector;
-        code = dgaps[numcompresseddgaps];
-        //printf("0x%16llX\n", code);
-        //printf("shifted code: \n");
-        shiftedcode = code << (4 + (numcodes * selector));
-        //printf("0x%16llX\n", shiftedcode);
-        result = result | shiftedcode;
-        //printf("current state of compressed word: \n");
-        //printf("0x%16llX\n", result);
-        numcompresseddgaps++;
-        numcodes++;
-    } while (((numcodes + 1) * selector) < 29);
-    return result;
-}
-
-// uses global variable <numints> to keep track of filling decompressed array
-// have added
-void decompress(uint32_t word, uint32_t *decompressed, int numints) {
-    int i;
-    uint32_t selector, mask, payload, temp;
-    selector = word & 0xf;
-    selectorfreqs[selector]++;
-    mask = (1 << (selector)) - 1;
-    payload = word >> 4;
-    for (i = 0; i < (28/selector) ; i++) {
-        temp = payload & mask;
-        decompressed[numints++] = temp;
-        //fappend(decompressed, temp);
-        payload = payload >> selector;
-    }
-}
 
 int compare_ints(const void *a, const void *b) {
     const int *ia = (const int *) a;
     const int *ib = (const int *) b;
-    //return (*ia > *ib) - (*ia < *ib);
     return *ia < *ib ? -1 : *ia == *ib ? 0 : 1;
 }
 
-// this function repeats most of what the decompression function does
-int countwastedbits(uint32_t word) {
-    int i;
-    uint32_t selector, mask, payload, temp, leadingzeros = 0;
-    selector = word & 0xf;
-    selectorfreqs[selector]++;
-    mask = (1 << (selector)) - 1;
-    payload = word >> 4;
-    for (i = 0; i < (28/selector) ; i++) {
-        temp = payload & mask;
-        payload = payload >> selector;
-        leadingzeros += selector - fls(temp);
-    }
-    return leadingzeros;
+
+/*
+ dest: compressed data array [out]
+ length: size of output array [in] // what?
+ source: the data to be compressed [in]
+ source_integers: number of integers to be compressed [in]
+ */
+size_t encode(uint32_t *dest, size_t length, uint32_t *source, size_t source_integers)
+{
+    size_t words_in_compressed_string;
+    uint32_t *into = dest;
+    uint32_t *end = (uint32_t*)((uint8_t*)dest + length);
+    size_t pos = 0;
+    for (words_in_compressed_string = 0; pos < source_integers; words_in_compressed_string++)
+        {
+            /*
+              Check for overflow (before we overflow)
+            */
+            if (into + 1 > end)
+                return 0;
+
+            size_t remaining = (pos + 28 < source_integers) ? 28 : source_integers - pos;
+            size_t last_bitmask = 0x0000;
+            size_t bitmask = 0xFFFF;
+
+            /*
+              Constrain last_bitmask to contain only bits for masks we can pack with
+            */
+            for (size_t offset = 0; offset < remaining && bitmask; offset++)
+                {
+                    bitmask &= can_pack_table[row_for_bits_needed[fls(source[pos + offset])] + offset];
+                    //bitmask &= can_pack_table[row_for_bits_needed[maths::ceiling_log2(source[pos + offset])] + offset];
+                    last_bitmask |= (bitmask & invalid_masks_for_offset[offset + 1]);
+                }
+
+            /*
+              Ensure valid input (this is triggered when and integer greater than 2^28 is in the input stream
+            */
+            if (last_bitmask == 0)
+                return 0;
+
+            /*
+              Get position of lowest set bit (most significant bit?)
+            */
+            uint32_t mask_type = ffs((uint32_t)last_bitmask);
+            //uint32_t mask_type = maths::find_first_set_bit((uint32_t)last_bitmask);
+            size_t num_to_pack = ints_packed_table[mask_type];
+
+            /*
+              Pack the word
+            */
+            *into = 0;
+            size_t mask_type_offset = 28 * mask_type;
+            for (size_t offset = 0; offset < num_to_pack; offset++)
+                *into |= ((source[pos + offset]) << simple9_shift_table[mask_type_offset + offset]);
+            *into = (*into << 4) | mask_type;
+            pos += num_to_pack;
+            into++;
+        }
+
+    return words_in_compressed_string * sizeof(*into);
 }
 
-int main(int argc, char *argv[]) {
-    uint32_t selector;
-    uint32_t i, prev = 0; //arraysize = 5000;
-    uint32_t *dgaps;
-    uint32_t *compressed, *decompressed;
-    uint32_t current, elements;
-    int bits, maxbits;
-    uint32_t index;
-    int bitsused;
-    int gap = 0, maxgap = 0;
+/*
+ destination: the array to put decompressed data in [out]
+ destination_integers: the number of integers to decode [in]
+ source: the compressed data [in]
+ source_length: size of compressed data (return value of encode) [in]
+*/
+ void decode(uint32_t *destination, size_t destination_integers, const uint32_t *source, size_t source_length)
+{
+    const uint32_t *compressed_sequence = (const uint32_t *) source;
+    uint32_t *end = destination + destination_integers;
     
-    const char *filename;
-    
-   if (argc == 2) {
-        filename = argv[1];
-    } else {
-        exit(printf("Usage::%s <binfile>\n", argv[0]));
-    }
-    
-    postings_list = malloc(NUMBER_OF_DOCS * sizeof postings_list[0]);
-    dgaps = malloc(NUMBER_OF_DOCS * sizeof dgaps[0]);
-    compressed = malloc(NUMBER_OF_DOCS * sizeof compressed[0]);
-    decompressed = malloc(NUMBER_OF_DOCS * sizeof decompressed[0]);
-
-    
-    //printf("Using: %s\n", filename);
-    FILE *fp;
-    if ((fp = fopen(filename, "rb")) == NULL) {
-        exit(printf("Cannot open %s\n", filename));
-    }
-    
-    //flexarray compresseddgaps = flexarray_new();
-    //flexarray decompressed = flexarray_new();
-    //selectorfreqs = malloc(32 * sizeof selectorfreqs[0]);
-    //for (i = 0; i < 32; i++) {
-    //    selectorfreqs[i] = 0;
-    //}
-    //freqarraysize = 32;
-    //int *bitlengthfreqs = malloc(freqarraysize * sizeof bitlengthfreqs[0]);
-    //for (i = 0; i < freqarraysize; i++) {
-    //    bitlengthfreqs[i] = 0;
-    //}
-    //flexarray f = flexarray_new();
-    //
-    //while (1 == scanf("%d", &item)) {
-    //    fappend(f, item);
-    //}
-    //arraysize = getsize(f);
-    //flexarray_sort(f);
-    //flexarray_print(f);
-    
-    //    // make synthetic data
-    //    docnums = malloc(arraysize * sizeof docnums[0]);
-    //    for (i = 0; i < arraysize; i++) {
-    //        docnums[i] = rand() % (arraysize * 100);
-    //    }
-    //    qsort(docnums, arraysize, sizeof docnums[0], compare_ints);
-    
-    
-    uint32_t length;
-    while (fread(&length, sizeof(length), 1, fp)  == 1) {
+    while (destination < end)
+    {
+        uint32_t value = *compressed_sequence++;
+        uint32_t mask_type = value & 0xF;
+        value >>= 4;
+        
         /*
-         Read one postings list (and make sure we did so successfully)
+         Unrolled loop to enable pipelining
          */
-        if (fread(postings_list, sizeof(*postings_list), length, fp) != length) {
-            exit(printf("i/o error\n"));
+        switch (mask_type)
+        {
+            case 0x0:
+                *destination++ = value & 0x1;
+                *destination++ = (value >> 0x1) & 0x1;
+                *destination++ = (value >> 0x2) & 0x1;
+                *destination++ = (value >> 0x3) & 0x1;
+                *destination++ = (value >> 0x4) & 0x1;
+                *destination++ = (value >> 0x5) & 0x1;
+                *destination++ = (value >> 0x6) & 0x1;
+                *destination++ = (value >> 0x7) & 0x1;
+                *destination++ = (value >> 0x8) & 0x1;
+                *destination++ = (value >> 0x9) & 0x1;
+                *destination++ = (value >> 0xA) & 0x1;
+                *destination++ = (value >> 0xB) & 0x1;
+                *destination++ = (value >> 0xC) & 0x1;
+                *destination++ = (value >> 0xD) & 0x1;
+                *destination++ = (value >> 0xE) & 0x1;
+                *destination++ = (value >> 0xF) & 0x1;
+                *destination++ = (value >> 0x10) & 0x1;
+                *destination++ = (value >> 0x11) & 0x1;
+                *destination++ = (value >> 0x12) & 0x1;
+                *destination++ = (value >> 0x13) & 0x1;
+                *destination++ = (value >> 0x14) & 0x1;
+                *destination++ = (value >> 0x15) & 0x1;
+                *destination++ = (value >> 0x16) & 0x1;
+                *destination++ = (value >> 0x17) & 0x1;
+                *destination++ = (value >> 0x18) & 0x1;
+                *destination++ = (value >> 0x19) & 0x1;
+                *destination++ = (value >> 0x1A) & 0x1;
+                *destination++ = (value >> 0x1B) & 0x1;
+                break;
+            case 0x1:
+                *destination++ = value & 0x3;
+                *destination++ = (value >> 0x2) & 0x3;
+                *destination++ = (value >> 0x4) & 0x3;
+                *destination++ = (value >> 0x6) & 0x3;
+                *destination++ = (value >> 0x8) & 0x3;
+                *destination++ = (value >> 0xA) & 0x3;
+                *destination++ = (value >> 0xC) & 0x3;
+                *destination++ = (value >> 0xE) & 0x3;
+                *destination++ = (value >> 0x10) & 0x3;
+                *destination++ = (value >> 0x12) & 0x3;
+                *destination++ = (value >> 0x14) & 0x3;
+                *destination++ = (value >> 0x16) & 0x3;
+                *destination++ = (value >> 0x18) & 0x3;
+                *destination++ = (value >> 0x1A) & 0x3;
+                break;
+            case 0x2:
+                *destination++ = value & 0x7;
+                *destination++ = (value >> 0x3) & 0x7;
+                *destination++ = (value >> 0x6) & 0x7;
+                *destination++ = (value >> 0x9) & 0x7;
+                *destination++ = (value >> 0xC) & 0x7;
+                *destination++ = (value >> 0xF) & 0x7;
+                *destination++ = (value >> 0x12) & 0x7;
+                *destination++ = (value >> 0x15) & 0x7;
+                *destination++ = (value >> 0x18) & 0x7;
+                break;
+            case 0x3:
+                *destination++ = value & 0xF;
+                *destination++ = (value >> 0x4) & 0xF;
+                *destination++ = (value >> 0x8) & 0xF;
+                *destination++ = (value >> 0xC) & 0xF;
+                *destination++ = (value >> 0x10) & 0xF;
+                *destination++ = (value >> 0x14) & 0xF;
+                *destination++ = (value >> 0x18) & 0xF;
+                break;
+            case 0x4:
+                *destination++ = value & 0x1F;
+                *destination++ = (value >> 0x5) & 0x1F;
+                *destination++ = (value >> 0xA) & 0x1F;
+                *destination++ = (value >> 0xF) & 0x1F;
+                *destination++ = (value >> 0x14) & 0x1F;
+                break;
+            case 0x5:
+                *destination++ = value & 0x7F;
+                *destination++ = (value >> 0x7) & 0x7F;
+                *destination++ = (value >> 0xE) & 0x7F;
+                *destination++ = (value >> 0x15) & 0x7F;
+                break;
+            case 0x6:
+                *destination++ = value & 0x1FF;
+                *destination++ = (value >> 0x9) & 0x1FF;
+                *destination++ = (value >> 0x12) & 0x1FF;
+                break;
+            case 0x7:
+                *destination++ = value & 0x3FFF;
+                *destination++ = (value >> 0xE) & 0x3FFF;
+                break;
+            case 0x8:
+                *destination++ = value & 0xFFFFFFF;
+                break;
         }
-        printf("%u: ", (unsigned)length);
-        
-        
-        // write docnums of current postings list into the array
-        for (uint32_t *where = postings_list; where < postings_list + length; where++) {
-            printf("%u ", (unsigned)*where);
-        }
+    }
+}
+
+int main(void) {
+
+    uint32_t *source, *compressed, *decompressed;
+    size_t length = 20, index = 0;
+    int i, temp, prev;
+
+    compressed = malloc(length * sizeof compressed[0]);
+    for (i = 0; i < length; i++) {
+        compressed[i] = 0;
+    }
+    decompressed = malloc(length * sizeof decompressed[0]);
+
+
+    // start make fake data for testing
+    source = malloc(length * sizeof source[0]);
+    for (i = 0; i < length; i++) {
+        source[i] = rand() % 972;
+    }
+    
+    qsort(source, length, sizeof source[0], compare_ints);
+
+    prev = 0;
+    for (i = 0; i < length; i++) {
+        temp = source[i] - prev;
+        prev = source[i];
+        source[i] = temp;
+    }
+       
+    uint32_t *original = malloc(length * sizeof original[0]);
+    for (i = 0; i < length; i++) {
+        original[i] = source[i];
+    }
+    // end make fake data
+    
+    
+    
+    /*
+     dest: compressed data array [out]
+     length: size of output array [in] // what?
+     source: the data to be compressed [in]
+     source_integers: number of integers to be compressed [in]
+     */
+    
+    size_t compressed_length = encode(compressed, length, source, length);
+    //encode function is doing something to compressed array, but returning error code
+    printf("return value of encode: %zu\n", compressed_length);
+    printf("compressed data:\n");
+    
+    printf("decompressed data:\n");
+    decode(decompressed, length, compressed, compressed_length);
+    
+    
+    printf("original:    decompressed: \n");
+    for (i = 0; i < length; i++) {
+        printf("%3d          ", original[i]);
+        printf("    %3d", decompressed[i]);
+        if (original[i] != decompressed[i]) printf("  wrong");
         printf("\n");
-        
-        //convert docnums to dgaps
-        prev = 0;
-        for (i = 0; i < length; i++) {
-            dgaps[i] = postings_list[i] - prev;
-            prev = postings_list[i];
-        }
-        printf("dgaps: \n");
-        for (i = 0; i < length; i++) {
-            printf("%u, ", dgaps[i]);
-        }
-        printf("\n");
-        
-        
-        // choose selector
-        index = 0;
-        numcompresseddgaps = 0;
-        compressedwords = 0;
-        
-        while (index < length) {
-            elements = 0;
-            maxbits = 0;
-            index = numcompresseddgaps;
-            
-            bitsused = 0;
-            while (bitsused < 32) {
-                current = dgaps[index++];
-                bits = fls(current);
-                //printf("current: %llu, bits: %d\n", current, bits);
-                elements++;
-                if (bits > maxbits) {
-                    maxbits = bits;
-                }
-                //printf("maxbits: %d\n", maxbits);
-                bitsused = maxbits * elements;
-            }
-            elements--;
-            
-            if (maxbits > 28) {
-                printf("can't compress numbers larger than 28 bits here\n");
-                return(EXIT_FAILURE);
-            } else if (maxbits > 14) {
-                selector = 28;
-            } else if (maxbits > 9) {
-                selector = 14;
-            } else if (maxbits > 7) {
-                selector = 9;
-            } else if (maxbits > 5) {
-                selector = 7;
-            } else {
-                selector = maxbits;
-            }
-            printf("chose selector %u\n", selector);
-
-            uint32_t temp = compress(selector, numcompresseddgaps, dgaps);
-            compressed[compressedwords++] = temp;
-            //fappend(compresseddgaps, temp);
-            //compressedwords++;
-        }
-        
-        printf("%u integers were compressed into %d words\n", length, compressedwords);
-        
-        printf("first compressed word: \n");
-        print_binary(compressed[0]);
-        printf("0x%8X\n", compressed[0]);
-        
-        // array to store decompressed numbers
-        // moved this outside of loop
-
-
-//        // do the decompression
-//        numints = 0;
-//        for (i = 0; i < compressedwords; i++) {
-//            decompress(compressed[i], decompressed, numints);
-//        }
-
-//        // array to hold bit length frequencies
-//        for (i = 0; i < arraysize; i++) {
-//            gap = dgaps[i];
-//            if (gap > maxgap) {
-//                maxgap = gap;
-//            }
-//        }
-//        printf("maxgap: %d\n", maxgap);
-//        //moved frequency array initialisation stuff out of loop
-//
-//
-//        for (i = 0; i < freqarraysize; i++) {
-//            bitlengthfreqs[i] = 0;
-//        }
-//        for (i = 0; i < arraysize; i++) {
-//            bits = fls(dgaps[i]);
-//            if (bits < 2) { //won't be zeros in real data, ones should be run length encoded
-//                bits = 1;
-//                bitlengthfreqs[bits]++;
-//            } else if (bits < 17) {
-//                bitlengthfreqs[bits]++;
-//            } else if (bits < 32) {
-//                bits = 16;
-//                bitlengthfreqs[bits]++;
-//            } else if (bits == 32) {
-//                bitlengthfreqs[bits]++;
-//            } else {
-//                return(EXIT_FAILURE);
-//            }
-//        }
-//
-//        printf("unrestricted bit lengths:\n");
-//        for (i = 0; i < freqarraysize; i++) {
-//            printf("number of dgaps requiring %llu bits: %d\n", i, bitlengthfreqs[i]);
-//        }
-//
-//        // print selector use stats
-//        for (i = 0; i < 16; i++) {
-//            printf("selector %llu used %d times\n", i, selectorfreqs[i]);
-//        }
-//        numcompresseddgaps *wastedbits = malloc(compressedwords);
-//        for (i = 0; i < compressedwords; i++) {
-//            wastedbits[i] = countwastedbits(compresseddgaps->items[i]);
-//            //printf("%llu bits wasted in %lluth word\n", wastedbits[i], i);
-//        }
-//        int sumwasted = 0;
-//        for (i = 0; i < compressedwords; i++) {
-//            sumwasted += wastedbits[i];
-//        }
-//        int wastedperword = sumwasted / compressedwords;
-//        printf("average internally wasted bits per word: %d\n", wastedperword);
-//        double ratio = (double) compressedwords / (double) arraysize;
-//        printf("compression ratio: %.2f\n", ratio);
-//
-        //free(decompressed->items);
-        //free(decompressed);
-        //free(dgaps);
-    }// end while loop for reading in postings lists
+    }
     
     
-    //    for (i = 0; i < arraysize; i++) {
-    //        printf("original: %llu ", dgaps[i]);
-    //        printf("decompressed: %llu ", decompressed->items[i]);
-    //        if (dgaps[i] != decompressed->items[i]) {
-    //            printf("wrong");
-    //        };
-    //        printf("\n");
-    //    }
     
-    //have forgotten to free items in flexarrays... needs fixing
-    //free(compresseddgaps);
-    free(postings_list);
-    free(dgaps);
-    //free(docnums);
-    
+//    printf("%zu\n", bits_to_use[13]);
+
     return 0;
 }
