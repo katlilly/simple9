@@ -59,6 +59,28 @@ const size_t simple9_shift_table[] =
         0, 14, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
         0, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28
     };
+//const size_t simple9_shift_table[] =
+//{
+//    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+//    0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+//    0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+//    0, 4, 8, 12, 16, 20, 24, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+//    0, 5, 10, 15, 20, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+//    0, 7, 14, 21, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+//    0, 7, 14, 21, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+//    0, 9, 18, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+//    0, 9, 18, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+//    0, 14, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+//    0, 14, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+//    0, 14, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+//    0, 14, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+//    0, 14, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+//    0, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+//    0, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+//    0, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+//    0, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28
+//};
+
 
 /*
   COMPRESS_INTEGER_SIMPLE_9::INTS_PACKED_TABLE
@@ -68,14 +90,17 @@ const size_t simple9_shift_table[] =
 // kat changed this table, change it back after fixing allowable mask type
 const size_t ints_packed_table[] =
     {
-        28, 14, 9, 9, 7, 7, 5, 4, 3, 2, 1
+        28, 28, 14, 9, 7, 5, 4, 4, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     };
 
 
 
 const size_t allowable_mask_type[] =
+//{
+//    1, 2, 3, 4, 5, 7, 7, 9, 9, 14, 14, 14, 14, 14, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28
+//};
 {
-    1, 2, 3, 4, 5, 7, 7, 9, 9, 14, 14, 14, 14, 14, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28
+    1, 2, 3, 4, 5, 6, 6, 8, 9
 };
 
 
@@ -124,31 +149,31 @@ const size_t row_for_bits_needed[] =
 
 /*
  MATHS_CEILING_LOG2_ANSWER[]
- ---------------------------
- */
-/*!
- @brief Lookup table to compute ceil(log2(x))
- */
-//static constexpr uint8_t maths_ceiling_log2_answer[0x100] =
-const uint8_t maths_ceiling_log2[0x100] =
-{
-    0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
-    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8
-};
+// ---------------------------
+// */
+///*!
+// @brief Lookup table to compute ceil(log2(x))
+// */
+////static constexpr uint8_t maths_ceiling_log2_answer[0x100] =
+//const uint8_t maths_ceiling_log2[0x100] =
+//{
+//    0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+//    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+//    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+//    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+//    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+//    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+//    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+//    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+//    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+//    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+//    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+//    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+//    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+//    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+//    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+//    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8
+//};
 
 
 int compare_ints(const void *a, const void *b) {
@@ -204,9 +229,10 @@ uint32_t encode(uint32_t *dest, size_t length, const int *source, size_t source_
             /*
               Get position of lowest set bit (most significant bit?)
             */
-            uint32_t mask_type = ffs((uint32_t)last_bitmask);
+            uint32_t mask_type = allowable_mask_type[ffs((uint32_t)last_bitmask)];
+            
             //uint32_t mask_type = maths::find_first_set_bit((uint32_t)last_bitmask);
-            mask_type = allowable_mask_type[mask_type];
+            //mask_type = allowable_mask_type[mask_type];
             size_t num_to_pack = ints_packed_table[mask_type];
             printf("mask type: %u\n", mask_type);
             printf("num_to_pack: %zu\n", num_to_pack);
@@ -215,9 +241,16 @@ uint32_t encode(uint32_t *dest, size_t length, const int *source, size_t source_
               Pack the word
             */
             *into = 0;
-            size_t mask_type_offset = 28 * mask_type;
-            for (size_t offset = 0; offset < num_to_pack; offset++)
+            size_t mask_type_offset = 28 * mask_type; // says which row of simple9_shift_table to use
+            uint32_t shift, sourcetmp, intoval;
+            for (size_t offset = 0; offset < num_to_pack; offset++) {
+                //shift = simple9_shift_table[mask_type_offset + offset];
+                sourcetmp = (source[pos + offset]);
+                printf("shift: %d\n sourcetmp: %d\n", shift, sourcetmp);
                 *into |= ((source[pos + offset]) << simple9_shift_table[mask_type_offset + offset]);
+                intoval = *into;
+                printf("value at into pointer: %d\n", intoval);
+            }
             *into = (*into << 4) | mask_type;
             pos += num_to_pack;
             into++;
@@ -396,15 +429,17 @@ int main(void) {
     decode(decompressed, length, compressed, length);
 //    decode(decompressed, length, compressed, compressed_length*4);
     
-    printf("original:  decompressed: \n");
+    printf("original:  compressed:   decompressed: \n");
     for (i = 0; i < length; i++) {
-        printf("%3d       ", original[i]);
+        printf("%3d     ", original[i]);
+        printf("%0x   ", compressed[i]);
         printf("    %3d", decompressed[i]);
         if (original[i] != decompressed[i]) printf("  wrong");
         printf("\n");
     }
-    
-
+    //for (i = 0; i < 28; i++) {
+    //    printf("intspacked[%d]: %zu \n", i, ints_packed_table[i]);
+    //}
     
 //    printf("%zu\n", bits_to_use[13]);
 
