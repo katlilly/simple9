@@ -65,10 +65,21 @@ const size_t simple9_shift_table[] =
   --------------------------------------------
   Number of integers packed into a 32-bit word, given its mask type
 */
+// kat changed this table, change it back after fixing allowable mask type
 const size_t ints_packed_table[] =
     {
-        28, 14, 9, 7, 5, 4, 3, 2, 1
+        28, 14, 9, 9, 7, 7, 5, 4, 3, 2, 1
     };
+
+
+
+const size_t allowable_mask_type[] =
+{
+    1, 2, 3, 4, 5, 7, 7, 9, 9, 14, 14, 14, 14, 14, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28
+};
+
+
+
 
 /*
   COMPRESS_INTEGER_SIMPLE_9::CAN_PACK_TABLE
@@ -153,20 +164,23 @@ int compare_ints(const void *a, const void *b) {
  source: the data to be compressed [in]
  source_integers: number of integers to be compressed [in]
  */
-size_t encode(uint32_t *dest, size_t length, uint32_t *source, size_t source_integers)
+uint32_t encode(uint32_t *dest, size_t length, const int *source, size_t source_integers)
 {
+
     size_t words_in_compressed_string;
     uint32_t *into = dest;
-    uint32_t *end = (uint32_t*)((uint8_t*)dest + length);
+    uint32_t *end = (uint32_t*)((uint32_t*)dest + length);
+
     size_t pos = 0;
     for (words_in_compressed_string = 0; pos < source_integers; words_in_compressed_string++)
         {
             /*
               Check for overflow (before we overflow)
             */
-            if (into + 1 > end)
+            if (into + 1 > end) {
+                printf("oops\n\n");
                 return 0;
-
+            }
             size_t remaining = (pos + 28 < source_integers) ? 28 : source_integers - pos;
             size_t last_bitmask = 0x0000;
             size_t bitmask = 0xFFFF;
@@ -192,7 +206,10 @@ size_t encode(uint32_t *dest, size_t length, uint32_t *source, size_t source_int
             */
             uint32_t mask_type = ffs((uint32_t)last_bitmask);
             //uint32_t mask_type = maths::find_first_set_bit((uint32_t)last_bitmask);
+            mask_type = allowable_mask_type[mask_type];
             size_t num_to_pack = ints_packed_table[mask_type];
+            printf("mask type: %u\n", mask_type);
+            printf("num_to_pack: %zu\n", num_to_pack);
 
             /*
               Pack the word
@@ -204,9 +221,10 @@ size_t encode(uint32_t *dest, size_t length, uint32_t *source, size_t source_int
             *into = (*into << 4) | mask_type;
             pos += num_to_pack;
             into++;
+            printf("%zu\n", words_in_compressed_string);
         }
 
-    return words_in_compressed_string * sizeof(*into);
+    return words_in_compressed_string;// * sizeof(*into);
 }
 
 /*
@@ -215,10 +233,10 @@ size_t encode(uint32_t *dest, size_t length, uint32_t *source, size_t source_int
  source: the compressed data [in]
  source_length: size of compressed data (return value of encode) [in]
 */
- void decode(uint32_t *destination, size_t destination_integers, const uint32_t *source, size_t source_length)
+ void decode(int *destination, size_t destination_integers, const void *source, size_t source_length)
 {
     const uint32_t *compressed_sequence = (const uint32_t *) source;
-    uint32_t *end = destination + destination_integers;
+    int *end = destination + destination_integers;
     
     while (destination < end)
     {
@@ -328,8 +346,10 @@ size_t encode(uint32_t *dest, size_t length, uint32_t *source, size_t source_int
 
 int main(void) {
 
-    uint32_t *source, *compressed, *decompressed;
-    size_t length = 20, index = 0;
+    int *source, *decompressed;
+    uint32_t *compressed;
+    
+    size_t length = 30;// index = 0;
     int i, temp, prev;
 
     compressed = malloc(length * sizeof compressed[0]);
@@ -353,7 +373,7 @@ int main(void) {
         prev = source[i];
         source[i] = temp;
     }
-       
+    
     uint32_t *original = malloc(length * sizeof original[0]);
     for (i = 0; i < length; i++) {
         original[i] = source[i];
@@ -368,25 +388,23 @@ int main(void) {
      source: the data to be compressed [in]
      source_integers: number of integers to be compressed [in]
      */
-    
-    size_t compressed_length = encode(compressed, length, source, length);
-    //encode function is doing something to compressed array, but returning error code
-    printf("return value of encode: %zu\n", compressed_length);
-    printf("compressed data:\n");
-    
-    printf("decompressed data:\n");
-    decode(decompressed, length, compressed, compressed_length);
+    //added +1 to last parameter, which fixes compression/decompression mistakes,
+    // but we still exit encode function with error
+    printf("return value of encode: %u\n", encode(compressed, length, source, length +1));
     
     
-    printf("original:    decompressed: \n");
+    decode(decompressed, length, compressed, length);
+//    decode(decompressed, length, compressed, compressed_length*4);
+    
+    printf("original:  decompressed: \n");
     for (i = 0; i < length; i++) {
-        printf("%3d          ", original[i]);
+        printf("%3d       ", original[i]);
         printf("    %3d", decompressed[i]);
         if (original[i] != decompressed[i]) printf("  wrong");
         printf("\n");
     }
     
-    
+
     
 //    printf("%zu\n", bits_to_use[13]);
 
