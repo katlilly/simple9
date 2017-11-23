@@ -77,8 +77,8 @@ uint32_t min(uint32_t a, uint32_t b)
 
 uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compress)
 {
-    uint32_t which;                             // which line in selector table
-    int current;                                // element number within each word
+    uint32_t which;                             // which element in selector struct array
+    int current;                                // count of elements within each compressed word
     uint32_t *integer = raw;                    // the current integer to compress
     uint32_t *end = raw + integers_to_compress; // the end of the input array
     for (which = 0; which < number_of_selectors; which++)
@@ -88,25 +88,25 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
         for (; integer < end; integer++)
         {
             if (fls(*integer) > table[which].bits)
-                break;
+                break; // increment which if current integer can't fit this many bits
         }
         if (integer >= end) {
             break;
         }
-        
     }
     //printf("chose selector: %d, will encode %d ints\n", table[which].bits, table[which].numbers);
     *destination = 0; // initialize word to zero before packing ints and selector into it
     for (current = 0; current < table[which].numbers; current++)
     {
         uint32_t value = current > integers_to_compress ? 0 : raw[current];
+        // value of current int (or pack some zeros in last word if we're at end of list)
         *destination = *destination << table[which].bits | value; // pack ints into compressed word
     }
     *destination = *destination << 4 | which; // put the selector into compressed word
-    //printf("%0x\n", *destination);
-    //print_binary(*destination);
     //printf("compressed %d ints\n", end - raw);
     //return end - raw;    // return number of dgaps compressed so far.
+    // below line keeps control of where we're up to properly, but does not return correct value
+    // for the last compressed word
     return table[which].numbers;
 }
 
@@ -192,6 +192,8 @@ uint32_t * makefakedata(uint32_t *dest, int number, int numberofnumbers) {
 }
 
 int main(int argc, char *argv[]) {
+    int listnumber = 0;
+    int totalwastedbits, totalcompresedwords;
     uint32_t i, j, prev = 0;
     uint32_t compressedwords;
     uint32_t compressedints;
@@ -263,17 +265,24 @@ int main(int argc, char *argv[]) {
             //printf("selector %d\n", table[selector].bits);
         }
         
-        // cumulative selector frequencies for wsj postings_lists;
+        listnumber++;
         
-        
+//  something in here causes "Floating point exception: 8"
+//        for (i = 0; i < compressedwords; i++) {
+//            totalwastedbits += countwastedbits(compressed[i]);
+//        }
         
         
         
         
     }// end read in of postings_list
+    
+    // cumulative selector frequencies for wsj postings_lists;
+
     for (int j = 0; j < number_of_selectors; j++) {
         printf("selector: %d, frequency: %d\n", selectorfreqs[j].selector, selectorfreqs[j].frequency);
     }
+    printf("total wasted bits: %d\n", totalwastedbits);
     
     
     //dgaps = makefakedata(dgaps, 1, 28);
