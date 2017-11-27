@@ -47,3 +47,5 @@ title('Bit widths vs selector frequencies')
 
 %sanity check, this should be a positive number
 sum(scaledselectorfreqs) - sum(intselector)
+%and this one
+sum(scaledselectorfreqs) - sum(intbitfreqs)
