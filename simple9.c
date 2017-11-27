@@ -7,9 +7,11 @@
 //#include "fls.h"
 
 #define NUMBER_OF_DOCS (1024 * 1024 * 128)
+#define MAX_BITWIDTH 32
 
 static uint32_t *postings_list;
 uint32_t *dgaps, *compressed, *decompressed;
+
 
 
 typedef struct
@@ -33,6 +35,8 @@ selector table[] =
     {28, 1,  0xfffffff}
 };
 
+int number_of_selectors = sizeof(table) / sizeof(*table);
+
 
 typedef struct
 {
@@ -40,7 +44,7 @@ typedef struct
     int frequency;
 } stats;
 
-
+// record selector use statistics for entire dataset, initialise freqs to zero
 stats selectorfreqs[] =
 {
     {1, 0},
@@ -63,14 +67,14 @@ typedef struct
     int wastedbits;
 } ratios;
 
-// counted number of postings in wsj dataset in main method = 499692
+// number of postings in wsj dataset counted in main method = 499692
+// array of ratios structs for recording compression stats for each listing
 ratios cr[499692];
 
 
-int number_of_selectors = sizeof(table) / sizeof(*table);
-
-
-void print_binary(uint32_t num) {
+// print an unsigned 32 bit in in big endian binary
+void print_binary(uint32_t num)
+{
     int i;
     for (i = 31; i >= 0; i--) {
         if (num & (1<<i)) {
@@ -217,13 +221,19 @@ int main(int argc, char *argv[]) {
     } else {
         exit(printf("Usage::%s <binfile>\n", argv[0]));
     }
+    //printf("Using: %s\n", filename);
     
     postings_list = malloc(NUMBER_OF_DOCS * sizeof postings_list[0]);
     dgaps = malloc(NUMBER_OF_DOCS * sizeof dgaps[0]);
     compressed = malloc(NUMBER_OF_DOCS * sizeof compressed[0]);
     decompressed = malloc(NUMBER_OF_DOCS * sizeof decompressed[0]);
     
-    //printf("Using: %s\n", filename);
+    // an array for storing bit width statistic of ints to be compressed
+    int *bitwidth_stats = malloc(MAX_BITWIDTH * sizeof (bitwidth_stats[0]));
+    for (i =0; i < MAX_BITWIDTH; i++) {
+        bitwidth_stats[i] = 0;
+    }
+
     
     FILE *fp;
     if ((fp = fopen(filename, "rb")) == NULL) {
@@ -246,12 +256,22 @@ int main(int argc, char *argv[]) {
         }
         //printf("\n");
         
+        
         // convert postings list to dgaps list
         prev = 0;
         for (i = 0; i < length; i++) {
             dgaps[i] = postings_list[i] - prev;
             prev = postings_list[i];
         }
+        
+        // count bits per int for each int
+        
+        int bitwidth;
+        for (i = 0; i < length; i++) {
+            bitwidth = fls(dgaps[i]);
+            bitwidth_stats[bitwidth]++;
+        }
+        
         
         // compress postings list
         uint32_t encoded = 0;  // return value of encode function - number of ints compressed
@@ -263,16 +283,15 @@ int main(int argc, char *argv[]) {
             encoded = encode(compressed + compressedwords, dgaps + compressedints, length - compressedints);
             compressedwords++;
         }
-        //printf("number of ints compressed: %d\n", compressedints);
-        //printf("mumber of compressed words: %d\n", compressedwords);
+        
         
         // add selector frequencies for each compressed list to global selector freqs array
         for (j = 0; j < compressedwords; j++) {
             //printf("%0x\n", compressed[j]);
             int selector = compressed[j] & 0xf;
-            if (compressedints > 100) {
+            //if (compressedints > 100) {
                 selectorfreqs[selector].frequency += 1;
-            }
+            //}
             //printf("selector %d\n", table[selector].bits);
         }
         
@@ -288,16 +307,19 @@ int main(int argc, char *argv[]) {
         }
         
         
-        printf("wasted bits in %dth list: %d\n", listnumber, wastedbits);
-        double dwasted = (double) wastedbits;
-        double dwords = (double) compressedwords;
-        double meanwasted = dwasted/dwords;
-        printf("compressed length: %d, wasted bits per word: %d\n", compressedwords, meanwasted);
+        
+        //printf("wasted bits in %dth list: %d\n", listnumber, wastedbits);
+        //double dwasted = (double) wastedbits;
+        //double dwords = (double) compressedwords;
+        //double meanwasted = dwasted/dwords;
+        //printf("compressed length: %d, wasted bits per word: %d\n", compressedwords, meanwasted);
 
         
     }// end read-in of postings_list
     
-    
+    for (i = 0; i < MAX_BITWIDTH; i++) {
+        printf("%d, %d\n", i, bitwidth_stats[i]);
+    }
     
     int numberoflists = listnumber;
     //printf("number of lists: %d\n", numberoflists);
@@ -335,7 +357,7 @@ int main(int argc, char *argv[]) {
     
     // cumulative selector frequencies for wsj postings_lists;
     for (int j = 0; j < number_of_selectors; j++) {
-        printf("selector: %2d, frequency: \t%8d\n", selectorfreqs[j].selector, selectorfreqs[j].frequency);
+        printf("%d, %d\n", selectorfreqs[j].selector, selectorfreqs[j].frequency);
     }
     
     
