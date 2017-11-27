@@ -1,10 +1,11 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<strings.h>
-#include<stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>
+#include <string.h>
+#include <stdint.h>
 #include "mylib.h"
 #include "flexarray.h"
-//#include "fls.h"
+#include "fls.h"
 
 #define NUMBER_OF_DOCS (1024 * 1024 * 128)
 #define MAX_BITWIDTH 32
@@ -156,10 +157,10 @@ uint32_t decode(uint32_t *destination, uint32_t word) {
     uint32_t numdecompressed = table[bits].numbers;
     uint32_t payload = word >> 4;
     for (int i = 0; i < table[selector].numbers; i++) {
-        
-        
+
+
     }
-    
+
     return numdecompressed;
 }
 
@@ -190,13 +191,7 @@ int countwastedbits(uint32_t word) {
 }
 
 
-int getstats() {
-    
-    return 1;
-    
-}
-
-
+// for making synthetic data that will compress in a known way
 uint32_t * makefakedata(uint32_t *dest, int number, int numberofnumbers) {
     int i;
     for (i = 0; i < numberofnumbers; i++) {
@@ -213,7 +208,7 @@ int main(int argc, char *argv[]) {
     uint32_t i, j, prev = 0;
     uint32_t compressedwords;
     uint32_t compressedints;
-    
+
     const char *filename;
     if (argc == 2) {
         filename = argv[1];
@@ -221,24 +216,26 @@ int main(int argc, char *argv[]) {
         exit(printf("Usage::%s <binfile>\n", argv[0]));
     }
     //printf("Using: %s\n", filename);
-    
+
     postings_list = malloc(NUMBER_OF_DOCS * sizeof postings_list[0]);
     dgaps = malloc(NUMBER_OF_DOCS * sizeof dgaps[0]);
     compressed = malloc(NUMBER_OF_DOCS * sizeof compressed[0]);
     decompressed = malloc(NUMBER_OF_DOCS * sizeof decompressed[0]);
-    
+
     // an array for storing bit width statistic of ints to be compressed
     int *bitwidth_stats = malloc(MAX_BITWIDTH * sizeof (bitwidth_stats[0]));
     for (i =0; i < MAX_BITWIDTH; i++) {
         bitwidth_stats[i] = 0;
     }
 
-    
+    int *lengthfreqs = malloc(160000 * sizeof lengthfreqs[0]);
+    memset(lengthfreqs, 0, 160000 * sizeof lengthfreqs[0]);
+
     FILE *fp;
     if ((fp = fopen(filename, "rb")) == NULL) {
         exit(printf("Cannot open %s\n", filename));
     }
-    
+
     uint32_t length;
     while (fread(&length, sizeof(length), 1, fp)  == 1) {
         /*
@@ -247,42 +244,43 @@ int main(int argc, char *argv[]) {
         if (fread(postings_list, sizeof(*postings_list), length, fp) != length) {
             exit(printf("i/o error\n"));
         }
-        
+
         //print current postings list
         //printf("%u: ", (unsigned)length);
         for (uint32_t *where = postings_list; where < postings_list + length; where++) {
             //printf("%u ", (unsigned)*where);
         }
         //printf("\n");
-        
-        
+
+        lengthfreqs[i]++;
+
         // convert postings list to dgaps list
         prev = 0;
         for (i = 0; i < length; i++) {
             dgaps[i] = postings_list[i] - prev;
             prev = postings_list[i];
         }
-        
+
         // count bits per int for each int
-        
+
         int bitwidth;
         for (i = 0; i < length; i++) {
             bitwidth = fls(dgaps[i]);
             bitwidth_stats[bitwidth]++;
         }
-        
-        
+
+
         // compress postings list
         uint32_t encoded = 0;  // return value of encode function - number of ints compressed
         compressedwords = 0;   // position in output array
         compressedints = 0;    // position in input array
-        
+
         for (compressedints = 0; compressedints < length; compressedints += encoded) {
             encoded = encode(compressed + compressedwords, dgaps + compressedints, length - compressedints);
             compressedwords++;
         }
-        
-        
+
+
         // add selector frequencies for each compressed list to global selector freqs array
         for (j = 0; j < compressedwords; j++) {
             //printf("%0x\n", compressed[j]);
@@ -292,39 +290,39 @@ int main(int argc, char *argv[]) {
             //}
             //printf("selector %d\n", table[selector].bits);
         }
-        
+
         listnumber++;
-        
+
         cr[listnumber].numpostings = compressedints;
         cr[listnumber].numcompressedwords = compressedwords;
-        
+
         //count wasted bits in entire compressed list
         wastedbits = 0;
         for (i = 0; i < compressedwords; i++) {
             wastedbits += countwastedbits(compressed[i]);
         }
-        
-        
-        
+
+
+
         //printf("wasted bits in %dth list: %d\n", listnumber, wastedbits);
         //double dwasted = (double) wastedbits;
         //double dwords = (double) compressedwords;
         //double meanwasted = dwasted/dwords;
         //printf("compressed length: %d, wasted bits per word: %d\n", compressedwords, meanwasted);
 
-        
+
     }// end read-in of postings_list
-    
-    
+
+
     // print bitwidth stats array to export to matlab
     for (i = 0; i < MAX_BITWIDTH; i++) {
-        printf("%d, %d\n", i, bitwidth_stats[i]);
+        //printf("%d, %d\n", i, bitwidth_stats[i]);
     }
-    
+
     int numberoflists = listnumber;
     //printf("number of lists: %d\n", numberoflists);
-    
-    
+
+
     // compression ratios
     for (i = 0; i < numberoflists; i++) {
         if (cr[i].numpostings > 100) {
@@ -333,7 +331,7 @@ int main(int argc, char *argv[]) {
             //printf("list number: %7d, list length: %2d, compressed length: %2d, compression ratio: %f\n", i, cr[i].numpostings, cr[i].numcompressedwords, compressed/raw);
         }
     }
-    
+
     // list length statistics
     int maxlength = 0;
     for (i = 0; i < numberoflists; i++) {
@@ -341,30 +339,31 @@ int main(int argc, char *argv[]) {
             maxlength = cr[i].numpostings;
         }
     }
-    
-    int * lengthfreqs = malloc(maxlength * sizeof lengthfreqs[0]);
-    memset(lengthfreqs, 0, maxlength * sizeof lengthfreqs[0]);
-    
-    for (i = 0; i < numberoflists; i++) {
-        int temp = cr[i].numpostings;
-        lengthfreqs[temp]++;
+
+
+    //int * lengthfreqs = malloc(maxlength * sizeof lengthfreqs[0]);
+    //memset(lengthfreqs, 0, maxlength * sizeof lengthfreqs[0]);
+
+    //for (i = 0; i < numberoflists; i++) {
+    //    int temp = cr[i].numpostings;
+    //    lengthfreqs[temp]++;
+    //}
+
+    for (i = 0; i < 60000; i++) {
+        printf("%d, %d\n", i, lengthfreqs[i]);
     }
-    
-    for (i = 0; i < maxlength; i++) {
-        //printf("%d, %d\n", i, lengthfreqs[i]);
-    }
-    
-    
+
+
     // cumulative selector frequencies for wsj postings_lists;
     for (int j = 0; j < number_of_selectors; j++) {
-        printf("%d, %d\n", selectorfreqs[j].selector, selectorfreqs[j].frequency);
+        //printf("%d, %d\n", selectorfreqs[j].selector, selectorfreqs[j].frequency);
     }
-    
-    
-    
-    
-    
-   
+
+
+
+
+
+
 //    printf("second compressed word: \n");
 //    print_binary(compressed[1]);
 //    printf("0x%8X\n", compressed[1]);
@@ -374,11 +373,11 @@ int main(int argc, char *argv[]) {
 //        printf(" %d      %0x       %d\n", dgaps[i], compressed[i], decompressed[i]);
 //        printf("\n");
 //    }
-    
+
     free(postings_list);
     free(dgaps);
     free(compressed);
     //free(decompressed);
-    
+
     return EXIT_SUCCESS;
 }
