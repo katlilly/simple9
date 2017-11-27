@@ -92,7 +92,7 @@ uint32_t min(uint32_t a, uint32_t b)
     return a <= b ? a : b;
 }
 
-
+// simple 9 compression
 uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compress)
 {
     uint32_t which;                             // which element in selector struct array
@@ -103,10 +103,9 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
     { // start by assuming we can fit 28 ints in
         // calculate end point - either end of list or enough ints for a word
         end = raw + min(integers_to_compress, table[which].numbers);
-        for (; integer < end; integer++)
-        {
+        for (; integer < end; integer++) {
             if (fls(*integer) > table[which].bits)
-                break; // increment which if current integer can't fit this many bits
+                break; // increment 'which' if current integer can't fit this many bits
         }
         if (integer >= end) {
             break;
@@ -114,8 +113,7 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
     }
     //printf("chose selector: %d, will encode %d ints\n", table[which].bits, table[which].numbers);
     *destination = 0; // initialize word to zero before packing ints and selector into it
-    for (current = 0; current < table[which].numbers; current++)
-    {
+    for (current = 0; current < table[which].numbers; current++) {
         uint32_t value = current > integers_to_compress ? 0 : raw[current];
         // value of current int (or pack some zeros in last word if we're at end of list)
         *destination = *destination << table[which].bits | value; // pack ints into compressed word
@@ -130,7 +128,8 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
 
 
 // uses global variable <numints> to keep track of filling decompressed array
-void decompress(uint32_t word, uint32_t *decompressed, int numints) {
+void decompress(uint32_t word, uint32_t *decompressed, int numints)
+{
     int i;
     uint32_t selector, mask, payload, temp;
     selector = word & 0xf;
@@ -148,8 +147,7 @@ void decompress(uint32_t word, uint32_t *decompressed, int numints) {
 uint32_t decode(uint32_t *destination, uint32_t word) {
     uint32_t selector = word & 0xf;
     int bits = 0;
-    for (int i = 0; i < number_of_selectors; i++)
-    {
+    for (int i = 0; i < number_of_selectors; i++) {
         if (selector == table[i].bits)
         {
             bits = table[i].bits;
@@ -206,6 +204,7 @@ uint32_t * makefakedata(uint32_t *dest, int number, int numberofnumbers) {
     }
     return dest;
 }
+
 
 int main(int argc, char *argv[]) {
     int listnumber = 0;
@@ -278,8 +277,7 @@ int main(int argc, char *argv[]) {
         compressedwords = 0;   // position in output array
         compressedints = 0;    // position in input array
         
-        for (compressedints = 0; compressedints < length; compressedints += encoded)
-        {
+        for (compressedints = 0; compressedints < length; compressedints += encoded) {
             encoded = encode(compressed + compressedwords, dgaps + compressedints, length - compressedints);
             compressedwords++;
         }
@@ -289,7 +287,7 @@ int main(int argc, char *argv[]) {
         for (j = 0; j < compressedwords; j++) {
             //printf("%0x\n", compressed[j]);
             int selector = compressed[j] & 0xf;
-            //if (compressedints > 100) {
+            //if (compressedints > 100) { // only look at 'long' lists
                 selectorfreqs[selector].frequency += 1;
             //}
             //printf("selector %d\n", table[selector].bits);
@@ -317,6 +315,8 @@ int main(int argc, char *argv[]) {
         
     }// end read-in of postings_list
     
+    
+    // print bitwidth stats array to export to matlab
     for (i = 0; i < MAX_BITWIDTH; i++) {
         printf("%d, %d\n", i, bitwidth_stats[i]);
     }
