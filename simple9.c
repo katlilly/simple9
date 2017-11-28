@@ -137,8 +137,8 @@ uint32_t decompress(uint32_t *dest, uint32_t word, uint32_t index)
     int i, intsout = 0;
     uint32_t selector, mask, payload, temp;
     selector = word & 0xf;
-    //printf("compressed word:\n");
-    //print_binary(word);
+    printf("compressed word:\n");
+    print_binary(word);
     printf("selector: %d\n", table[selector].bits);
     //selectorfreqs[selector]++;
     mask = (1 << (selector)) - 1;
