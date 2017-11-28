@@ -12,7 +12,7 @@
 
 static uint32_t *postings_list;
 uint32_t *dgaps, *compressed, *decompressed;
-
+uint32_t intsout;
 
 // selector table for chosing selectors
 typedef struct
@@ -119,6 +119,7 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
         uint32_t value = current > integers_to_compress ? 0 : raw[current];
         // value of current int (or pack some zeros in last word if we're at end of list)
         *destination = *destination << table[which].bits | value; // pack ints into compressed word
+        
     }
     *destination = *destination << 4 | which; // put the selector into compressed word
     // printf("compressed %d ints\n", end - raw);
@@ -129,20 +130,43 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
 }
 
 
-/* uses global variable <numints> to keep track of filling decompressed array */
-void decompress(uint32_t word, uint32_t *decompressed, int numints)
+/* used to use global variable <numints> to keep track of filling decompressed array
+ now returns number of ints decompressed */
+uint32_t decompress(uint32_t *dest, uint32_t word, uint32_t index)
 {
-    int i;
+    int i, intsout = 0;
     uint32_t selector, mask, payload, temp;
     selector = word & 0xf;
+    //printf("compressed word:\n");
+    //print_binary(word);
+    printf("selector: %d\n", table[selector].bits);
     //selectorfreqs[selector]++;
     mask = (1 << (selector)) - 1;
+    //printf("payload:\n");
     payload = word >> 4;
-    for (i = 0; i < (28/selector) ; i++) {
-        temp = payload & mask;
-        decompressed[numints++] = temp;
-        payload = payload >> selector;
+    //print_binary(payload);
+    for (i = 0; i < table[selector].numbers; i++) {
+        temp = payload & table[selector].masks;// << (table[selector].bits * i));
+
+        decompressed[index++] = temp;
+        intsout++;
+        payload = payload >> table[selector].bits;
+        //printf("current state of payload: ");
+        //print_binary(payload);
     }
+//    for (i = table[selector].numbers; i > 0; i--) {
+//        mask = table[selector].masks << (table[selector].bits * i);
+//        temp = payload & mask;
+//
+//        decompressed[index++] = temp;
+//        intsout++;
+//        payload = payload >> table[selector].bits;
+//        //printf("current state of payload: ");
+//        //print_binary(payload);
+//    }
+    //printf("\n");
+    //printf("decompressed %d ints\n", intsout);
+    return intsout;
 }
 
 
@@ -266,11 +290,11 @@ int main(int argc, char *argv[]) {
         }
         
         /* print dgap lists */
-//        printf("%d: ", length);
-//        for (i = 0; i < length; i++) {
-//            printf("%d, ", dgaps[i]);
-//        }
-//        printf("\n");
+        printf("%d: ", length);
+        for (i = 0; i < length; i++) {
+            printf("%d, ", dgaps[i]);
+        }
+        printf("\n");
         
         /* count bits needed for each dgap.
          currently as cumulative stats for entire set of lists */
@@ -319,16 +343,31 @@ int main(int argc, char *argv[]) {
         // then add total internally wasted bits for this list to cr[listnumber].wastedbits
 
         /* decompress the postings list */
+        int index = 0;
+        //intsout = 0;  // reset number of decompressed ints to zero for each word
         for (i = 0; i < compressedwords; i++) {
-            decode(decompressed, compressed[i]);
+            index += decompress(decompressed + intsout, compressed[i], index);
         }
         
         /* print decompressed dgaps list */
-        printf("decompressed");
+//        printf("decompressed: %d\n", length);
+//        for (i = 0; i < length; i++) {
+//            printf("%u, ", decompressed[i]);
+//        }
+//        printf("\n\n\n");
+        
+        /* find errors in compression or decompression */
+        printf("original: decompressed:\n");
         for (i = 0; i < length; i++) {
-            printf("%u, ", decompressed[i]);
+            printf("%6d        %6d", dgaps[i], decompressed[i]);
+            if (dgaps[i] != decompressed[i]) {
+                printf("     wrong");
+            }
+            printf("\n");
+            printf("\n");
         }
-        printf("\n");
+   
+        
         
     }// end read-in of postings lists
 
