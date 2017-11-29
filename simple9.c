@@ -386,8 +386,11 @@ int main(int argc, char *argv[])
         
         /* print bitwidth statistics for a single list */
         // *******************************************
-        if (listnumber == 96) {
+        //using lists 96 and 445139 as examples
+        if (listnumber == 445139) {
             //printf("length of list %d is %d\n", listnumber, length);
+            printf("%d\n", listnumber);
+            printf("%d\n", length);
             //printf("Bitwidth stats for %dth list: \n", listnumber);
             for (i = 0; i < MAX_BITWIDTH; i++) {
                 printf("%d, %d\n", i, single_list_bitwidths[i]);
