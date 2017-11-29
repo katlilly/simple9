@@ -1,0 +1,649 @@
+length of list 96 is 25722
+Bitwidth stats for 96th list: 
+0, 0
+1, 5072
+2, 6813
+3, 6906
+4, 4359
+5, 1943
+6, 569
+7, 60
+8, 0
+9, 0
+10, 0
+11, 0
+12, 0
+13, 0
+14, 0
+15, 0
+16, 0
+17, 0
+18, 0
+19, 0
+20, 0
+21, 0
+22, 0
+23, 0
+24, 0
+25, 0
+26, 0
+27, 0
+28, 0
+29, 0
+30, 0
+31, 0
+where the 0 bit ints went:
+selector: number of times used by 0 bit ints:
+   1:      0
+   2:      0
+   3:      2
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 1 bit ints went:
+selector: number of times used by 1 bit ints:
+   1:      0
+   2:      27
+   3:      1585
+   4:      2530
+   5:      766
+   7:      164
+   9:      0
+  14:      0
+  28:      0
+
+where the 2 bit ints went:
+selector: number of times used by 2 bit ints:
+   1:      0
+   2:      15
+   3:      1984
+   4:      3374
+   5:      1149
+   7:      291
+   9:      0
+  14:      0
+  28:      0
+
+where the 3 bit ints went:
+selector: number of times used by 3 bit ints:
+   1:      0
+   2:      0
+   3:      1703
+   4:      3219
+   5:      1519
+   7:      465
+   9:      0
+  14:      0
+  28:      0
+
+where the 4 bit ints went:
+selector: number of times used by 4 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      2399
+   5:      1380
+   7:      580
+   9:      0
+  14:      0
+  28:      0
+
+where the 5 bit ints went:
+selector: number of times used by 5 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      1496
+   7:      447
+   9:      0
+  14:      0
+  28:      0
+
+where the 6 bit ints went:
+selector: number of times used by 6 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      569
+   9:      0
+  14:      0
+  28:      0
+
+where the 7 bit ints went:
+selector: number of times used by 7 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      60
+   9:      0
+  14:      0
+  28:      0
+
+where the 8 bit ints went:
+selector: number of times used by 8 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 9 bit ints went:
+selector: number of times used by 9 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 10 bit ints went:
+selector: number of times used by 10 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 11 bit ints went:
+selector: number of times used by 11 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 12 bit ints went:
+selector: number of times used by 12 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 13 bit ints went:
+selector: number of times used by 13 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 14 bit ints went:
+selector: number of times used by 14 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 15 bit ints went:
+selector: number of times used by 15 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 16 bit ints went:
+selector: number of times used by 16 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 17 bit ints went:
+selector: number of times used by 17 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 18 bit ints went:
+selector: number of times used by 18 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 19 bit ints went:
+selector: number of times used by 19 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 20 bit ints went:
+selector: number of times used by 20 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 21 bit ints went:
+selector: number of times used by 21 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 22 bit ints went:
+selector: number of times used by 22 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 23 bit ints went:
+selector: number of times used by 23 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 24 bit ints went:
+selector: number of times used by 24 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 25 bit ints went:
+selector: number of times used by 25 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 26 bit ints went:
+selector: number of times used by 26 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+where the 27 bit ints went:
+selector: number of times used by 27 bit ints:
+   1:      0
+   2:      0
+   3:      0
+   4:      0
+   5:      0
+   7:      0
+   9:      0
+  14:      0
+  28:      0
+
+how the 1 bit selector was used:
+bit width: number of ints in selector
+    0:      0
+    1:      0
+    2:      0
+    3:      0
+    4:      0
+    5:      0
+    6:      0
+    7:      0
+    8:      0
+    9:      0
+   10:      0
+   11:      0
+   12:      0
+   13:      0
+   14:      0
+   15:      0
+   16:      0
+   17:      0
+   18:      0
+   19:      0
+   20:      0
+   21:      0
+   22:      0
+   23:      0
+   24:      0
+   25:      0
+   26:      0
+   27:      0
+
+how the 2 bit selector was used:
+bit width: number of ints in selector
+    0:      0
+    1:      27
+    2:      15
+    3:      0
+    4:      0
+    5:      0
+    6:      0
+    7:      0
+    8:      0
+    9:      0
+   10:      0
+   11:      0
+   12:      0
+   13:      0
+   14:      0
+   15:      0
+   16:      0
+   17:      0
+   18:      0
+   19:      0
+   20:      0
+   21:      0
+   22:      0
+   23:      0
+   24:      0
+   25:      0
+   26:      0
+   27:      0
+
+how the 3 bit selector was used:
+bit width: number of ints in selector
+    0:      2
+    1:      1585
+    2:      1984
+    3:      1703
+    4:      0
+    5:      0
+    6:      0
+    7:      0
+    8:      0
+    9:      0
+   10:      0
+   11:      0
+   12:      0
+   13:      0
+   14:      0
+   15:      0
+   16:      0
+   17:      0
+   18:      0
+   19:      0
+   20:      0
+   21:      0
+   22:      0
+   23:      0
+   24:      0
+   25:      0
+   26:      0
+   27:      0
+
+how the 4 bit selector was used:
+bit width: number of ints in selector
+    0:      0
+    1:      2530
+    2:      3374
+    3:      3219
+    4:      2399
+    5:      0
+    6:      0
+    7:      0
+    8:      0
+    9:      0
+   10:      0
+   11:      0
+   12:      0
+   13:      0
+   14:      0
+   15:      0
+   16:      0
+   17:      0
+   18:      0
+   19:      0
+   20:      0
+   21:      0
+   22:      0
+   23:      0
+   24:      0
+   25:      0
+   26:      0
+   27:      0
+
+how the 5 bit selector was used:
+bit width: number of ints in selector
+    0:      0
+    1:      766
+    2:      1149
+    3:      1519
+    4:      1380
+    5:      1496
+    6:      0
+    7:      0
+    8:      0
+    9:      0
+   10:      0
+   11:      0
+   12:      0
+   13:      0
+   14:      0
+   15:      0
+   16:      0
+   17:      0
+   18:      0
+   19:      0
+   20:      0
+   21:      0
+   22:      0
+   23:      0
+   24:      0
+   25:      0
+   26:      0
+   27:      0
+
+how the 7 bit selector was used:
+bit width: number of ints in selector
+    0:      0
+    1:      164
+    2:      291
+    3:      465
+    4:      580
+    5:      447
+    6:      569
+    7:      60
+    8:      0
+    9:      0
+   10:      0
+   11:      0
+   12:      0
+   13:      0
+   14:      0
+   15:      0
+   16:      0
+   17:      0
+   18:      0
+   19:      0
+   20:      0
+   21:      0
+   22:      0
+   23:      0
+   24:      0
+   25:      0
+   26:      0
+   27:      0
+
+how the 9 bit selector was used:
+bit width: number of ints in selector
+    0:      0
+    1:      0
+    2:      0
+    3:      0
+    4:      0
+    5:      0
+    6:      0
+    7:      0
+    8:      0
+    9:      0
+   10:      0
+   11:      0
+   12:      0
+   13:      0
+   14:      0
+   15:      0
+   16:      0
+   17:      0
+   18:      0
+   19:      0
+   20:      0
+   21:      0
+   22:      0
+   23:      0
+   24:      0
+   25:      0
+   26:      0
+   27:      0
+
+how the 14 bit selector was used:
+bit width: number of ints in selector
+    0:      0
+    1:      0
+    2:      0
+    3:      0
+    4:      0
+    5:      0
+    6:      0
+    7:      0
+    8:      0
+    9:      0
+   10:      0
+   11:      0
+   12:      0
+   13:      0
+   14:      0
+   15:      0
+   16:      0
+   17:      0
+   18:      0
+   19:      0
+   20:      0
+   21:      0
+   22:      0
+   23:      0
+   24:      0
+   25:      0
+   26:      0
+   27:      0
+
+how the 28 bit selector was used:
+bit width: number of ints in selector
+    0:      0
+    1:      0
+    2:      0
+    3:      0
+    4:      0
+    5:      0
+    6:      0
+    7:      0
+    8:      0
+    9:      0
+   10:      0
+   11:      0
+   12:      0
+   13:      0
+   14:      0
+   15:      0
+   16:      0
+   17:      0
+   18:      0
+   19:      0
+   20:      0
+   21:      0
+   22:      0
+   23:      0
+   24:      0
+   25:      0
+   26:      0
+   27:      0
+

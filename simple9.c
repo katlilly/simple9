@@ -204,10 +204,68 @@ uint32_t * makefakedata(uint32_t *dest, int number, int numberofnumbers) {
 }
 
 
-int main(int argc, char *argv[]) {
+/* count selector used vs bitwidths for every int in a compressed list
+   length is the compressed list length
+   returns an array of frequencies for each selector / bitwidth pair */
+int * count_bitsvselector(uint32_t *compressed, int length)
+{
+    int temp = 0;
+    int max_bitwidth = 28;
+    int number_of_selectors = 9;
+    int *result = malloc(max_bitwidth * number_of_selectors * sizeof *result);
+    memset(result, 0, max_bitwidth * number_of_selectors * sizeof *result);
+    
+    for (int i = 0; i < length; i++) {
+        uint32_t word = *(compressed + i);
+        int selector = word & 0xf;
+        uint32_t payload = word >> 4;
+        for (int j = 0; j < table[selector].intstopack; j++) {
+            temp = payload & table[selector].masks;
+            result[fls(temp) + selector * max_bitwidth]++;
+            payload = payload >> table[selector].bits;
+        }
+    }
+    return result;
+}
+
+
+
+/* print bitwidths vs selector used for one compressed list */
+void print_bitsvselector(int *bitsvselector)
+{
+    int max_bitwidth = 28;
+    int number_of_selectors = 9;
+    for (int i = 0; i < max_bitwidth; i++) {
+        printf("where the %d bit ints went:\n", i);
+        printf("selector: number of times used by %d bit ints:\n", i);
+        for (int j = 0; j < number_of_selectors; j++) {
+            printf("  %2d:      %d\n", table[j].bits, bitsvselector[i + j * max_bitwidth]);
+        }
+        printf("\n");
+    }
+}
+
+/* print selector used vs bitwidths for one compressed list */
+void print_selectorvbits(int *bitsvselector)
+{
+    int max_bitwidth = 28;
+    int number_of_selectors = 9;
+    for (int i = 0; i < number_of_selectors; i++) {
+        printf("how the %d bit selector was used:\n", table[i].bits);
+        printf("bit width: number of ints in selector\n");
+        for (int j = 0; j < max_bitwidth; j++) {
+            printf("   %2d:      %d\n", j, bitsvselector[j + i * max_bitwidth]);
+        }
+        printf("\n");
+    }
+}
+
+
+
+int main(int argc, char *argv[])
+{
     int listnumber = 0;
-    int wastedbits;
-    uint32_t i, j, prev, length;
+    uint32_t i, prev, length;
     uint32_t compressedwords;
     uint32_t compressedints;
 
@@ -295,9 +353,16 @@ int main(int argc, char *argv[]) {
             single_list_bitwidths[bitwidth]++;
         }
         
+        /* find a list of a given length */
+//        if (length > 150000) {
+//            printf("length of list %d is %d\n", listnumber, length);
+//            exit(1);
+//        }
+        
         /* print bitwidth statistics for a single list */
         // *******************************************
-        if (listnumber == 66) {
+        if (listnumber == 445139) {
+            printf("length of list %d is %d\n", listnumber, length);
             printf("Bitwidth stats for %dth list: \n", listnumber);
             for (i = 0; i < MAX_BITWIDTH; i++) {
                 printf("%d, %d\n", i, single_list_bitwidths[i]);
@@ -312,6 +377,11 @@ int main(int argc, char *argv[]) {
                 numencoded = encode(compressed + compressedwords, dgaps + compressedints, length - compressedints);
                 compressedwords++;
             }
+            
+            /* make data for the 9 graphs */
+            int * bitsvselectorstats = count_bitsvselector(compressed, compressedwords);
+            print_bitsvselector(bitsvselectorstats);
+            print_selectorvbits(bitsvselectorstats);
             
             /* decompress 66th list while counting selector use vs bitwidths */
             // ************* to do ************************
