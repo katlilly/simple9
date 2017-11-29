@@ -67,7 +67,7 @@ uint64_t compress(uint64_t selector, int thisindex, uint64_t *dgaps) {
         shiftedcode = code << (4 + (numcodes * selector));
         //printf("0x%16llX\n", shiftedcode);
         result = result | shiftedcode;
-        //printf("current state of compressed word: \n");
+        //printf("current state of compressed word: \n");
         //printf("0x%16llX\n", result);
         numcompressedints++;
         numcodes++;

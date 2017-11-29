@@ -104,11 +104,16 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
 {
     uint32_t which;                             // which element in selector array
     int current;                                // count of elements within each compressed word
+    int topack;                                 // min of selector's intstopack and what's left to compress
     uint32_t *integer = raw;                    // the current integer to compress
     uint32_t *end = raw + integers_to_compress; // the end of the input array
+    
+    /* chose selector */
     for (which = 0; which < number_of_selectors; which++)
     {   // start by assuming we can fit 28 ints in
-        end = raw + min(integers_to_compress, table[which].intstopack);
+        topack = min(integers_to_compress, table[which].intstopack);
+        end = raw + topack;
+        //end = raw + min(integers_to_compress, table[which].intstopack);
         for (; integer < end; integer++) {
             if (fls(*integer) > table[which].bits)
                 break; // increment 'which' if current integer can't fit in this many bits
@@ -117,20 +122,36 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
             break;
         }
     }
-    *destination = 0; // initialize word to zero before packing ints and selector into it
-    for (current = 0; current < table[which].intstopack; current++) {
-        uint32_t value = current > integers_to_compress ? 0 : raw[current];
-        // value of current int (or pack some zeros in last word if we're at end of list)
-        *destination = *destination << table[which].bits | value; // pack ints into compressed word
-        
+
+    /* pack one word */
+    *destination = 0;
+    uint32_t code;
+    *destination = *destination | which;
+    for (current = 0; current < topack; current++) {
+        code = raw[current];
+        uint32_t shiftedcode = code << (4 + (current * table[which].bits));
+        *destination = *destination | shiftedcode;
     }
-    *destination = *destination << 4 | which; // put the selector into compressed word
-    // printf("compressed %d ints\n", end - raw);
-    // return end - raw;    // return number of dgaps compressed so far.
-    // below line keeps control of where we're up to properly, but does not return correct value
-    // for the final compressed word in the list
-    return table[which].intstopack;
+    
+//    *destination = 0; // initialize word to zero before packing ints and selector into it
+//    for (current = 0; current < table[which].intstopack; current++) {
+//        uint32_t value = current > integers_to_compress ? 0 : raw[current];
+//        // value of current int (or pack some zeros in last word if we're at end of list)
+//        *destination = *destination << table[which].bits | value; // pack ints into compressed word
+//        // print_binary(*destination);
+//    }
+//    *destination = *destination << 4 | which; // put the selector into compressed word
+//    print_binary(*destination);
+    
+    return topack;    // return number of dgaps compressed so far.
 }
+
+// chose selector: 9, for up to 3 ints, will encode 3 ints
+// 00000 000000000 000000000 010011010
+// 00000 000000000 010011010 001010000
+// 00000 010011010 001010000 001011001
+// compressed word with selector added:
+// 0 010011010 001010000 001011001 0110
 
 
 /* used to use global variable <numints> to keep track of filling decompressed array
@@ -140,10 +161,6 @@ uint32_t decompress(uint32_t *dest, uint32_t word, int offset)
     int i, intsout = 0;
     uint32_t selector, mask, payload, temp;
     selector = word & 0xf;
-    //printf("compressed word:\n");
-    //print_binary(word);
-    //printf("selector: %d\n", table[selector].bits);
-    //selectorfreqs[selector]++;
     mask = (1 << (selector)) - 1;
     //printf("payload:\n");
     payload = word >> 4;
@@ -323,14 +340,13 @@ int main(int argc, char *argv[]) {
         
         /* print bitwidth statistics for a single list */
         // *******************************************
-        printf("Bitwidth stats for %dth list: \n", listnumber);
-        for (i = 0; i < MAX_BITWIDTH; i++) {
-            printf("%d, %d\n", i, single_list_bitwidths[i]);
-        }
-        free(single_list_bitwidths);
+//        printf("Bitwidth stats for %dth list: \n", listnumber);
+//        for (i = 0; i < MAX_BITWIDTH; i++) {
+//            printf("%d, %d\n", i, single_list_bitwidths[i]);
+//        }
+//        free(single_list_bitwidths);
 
         
-        // ********* need to fix the return value of encode function **********
         /* compress this postings list */
         uint32_t numencoded = 0;  // return value of encode function, the number of ints compressed
         compressedwords = 0;      // offset for position in output array "compressed"
@@ -339,13 +355,12 @@ int main(int argc, char *argv[]) {
             numencoded = encode(compressed + compressedwords, dgaps + compressedints, length - compressedints);
             compressedwords++;
         }
-
+        
+       
         
         /* add selector freqs for this compressed list to global array of selector freqs */
         // *****************************************************************************
         for (j = 0; j < compressedwords; j++) {
-            //printf("%0x\n", compressed[j]);
-            //print_binary(compressed[j]);
             int selector = compressed[j] & 0xf;
             //if (compressedints > 100) { // only look at 'long' lists
                 selectorfreqs[selector].frequency += 1;
@@ -373,17 +388,17 @@ int main(int argc, char *argv[]) {
 
         /* decompress the current postings list */
         // ************************************
-//        int offset = 0;  // reset number of decompressed ints to zero for each word
-//        for (i = 0; i < compressedwords; i++) {
-//            offset += decompress(decompressed, compressed[i], offset);
-//        }
+        int offset = 0;  // reset number of decompressed ints to zero for each word
+        for (i = 0; i < compressedwords; i++) {
+            offset += decompress(decoded, compressed[i], offset);
+        }
         
         
         /* print decompressed dgaps list */
         // *****************************
 //        printf("decompressed: %d\n", length);
 //        for (i = 0; i < length; i++) {
-//            printf("%u, ", decompressed[i]);
+//            printf("%u, ", decoded[i]);
 //        }
 //        printf("\n\n");
         
@@ -392,11 +407,10 @@ int main(int argc, char *argv[]) {
         // *******************************************
 //        printf("original: decompressed:\n");
 //        for (i = 0; i < length; i++) {
-//            printf("%6d        %6d", dgaps[i], decompressed[i]);
-//            if (dgaps[i] != decompressed[i]) {
+//            printf("%6d        %6d", dgaps[i], decoded[i]);
+//            if (dgaps[i] != decoded[i]) {
 //                printf("     wrong");
 //            }
-//            printf("\n");
 //            printf("\n");
 //        }
    
