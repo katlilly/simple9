@@ -3,27 +3,42 @@
 #include <strings.h>
 #include <string.h>
 #include <stdint.h>
-#include "mylib.h"
-#include "flexarray.h"
 //#include "fls.h"
 
-#define NUMBER_OF_DOCS (1024 * 1024 * 128)
+
+#define NUMBER_OF_DOCS (1024 * 1024 * 1)
 #define MAX_BITWIDTH 32
+#define MAX_LENGTH 157871
+#define NUMBER_OF_LISTS 499693
 
-static uint32_t *postings_list;
-uint32_t *dgaps, *compressed;
-uint32_t *decoded = NULL;
-//uint32_t intsout;
 
-// selector table for chosing selectors
+/* data structure for each line in the selector table */
 typedef struct
 {
-    uint32_t bits;  // bitwidths
-    int numbers;    // number of ints to pack
+    uint32_t bits;
+    int intstopack;     // number of ints to pack
     uint32_t masks;
 } selector;
 
-// the selectors for simple-9
+
+/* data structure for selector use statistics */
+typedef struct
+{
+    int selector;
+    int frequency;
+} stats;
+
+
+/* data stucture for recording statistics for a single postings list */
+typedef struct
+{
+    int listlength;
+    int numcompressedwords;
+    int wastedbits;
+} ratios;
+
+
+/* the selectors for simple-9 */
 selector table[] =
 {
     {1,  28, 1},
@@ -40,15 +55,8 @@ selector table[] =
 int number_of_selectors = sizeof(table) / sizeof(*table);
 
 
-/* data structure for selector use statistics */
-typedef struct
-{
-    int selector;
-    int frequency;
-} stats;
-
-
-/* record selector use statistics for entire dataset, initialise freqs to zero */
+/* array of stats structs to record selector use statistics for entire dataset,
+ initialise freqs to zero */
 stats selectorfreqs[] =
 {
     {1, 0},
@@ -63,17 +71,11 @@ stats selectorfreqs[] =
 };
 
 
-/* data stucture for recording statistics for a single postings list */
-typedef struct
-{
-    int listlength;
-    int numcompressedwords;
-    int wastedbits;
-} ratios;
-
-/* number of postings in wsj dataset counted in main method = 499692
- array of ratios structs for recording compression stats for each listing */
-ratios cr[499692]; // this number is too big? cause of segfault on laptop?
+ratios *cr = NULL;
+uint32_t *postings_list = NULL;
+uint32_t *dgaps = NULL;
+uint32_t *compressed = NULL;
+uint32_t *decoded = NULL;
 
 
 /* print an unsigned 32 bit int in big-endian binary */
@@ -106,7 +108,7 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
     uint32_t *end = raw + integers_to_compress; // the end of the input array
     for (which = 0; which < number_of_selectors; which++)
     {   // start by assuming we can fit 28 ints in
-        end = raw + min(integers_to_compress, table[which].numbers);
+        end = raw + min(integers_to_compress, table[which].intstopack);
         for (; integer < end; integer++) {
             if (fls(*integer) > table[which].bits)
                 break; // increment 'which' if current integer can't fit in this many bits
@@ -116,7 +118,7 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
         }
     }
     *destination = 0; // initialize word to zero before packing ints and selector into it
-    for (current = 0; current < table[which].numbers; current++) {
+    for (current = 0; current < table[which].intstopack; current++) {
         uint32_t value = current > integers_to_compress ? 0 : raw[current];
         // value of current int (or pack some zeros in last word if we're at end of list)
         *destination = *destination << table[which].bits | value; // pack ints into compressed word
@@ -127,7 +129,7 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
     // return end - raw;    // return number of dgaps compressed so far.
     // below line keeps control of where we're up to properly, but does not return correct value
     // for the final compressed word in the list
-    return table[which].numbers;
+    return table[which].intstopack;
 }
 
 
@@ -146,7 +148,7 @@ uint32_t decompress(uint32_t *dest, uint32_t word, int offset)
     //printf("payload:\n");
     payload = word >> 4;
     //print_binary(payload);
-    for (i = 0; i < table[selector].numbers; i++) {
+    for (i = 0; i < table[selector].intstopack; i++) {
         temp = payload & table[selector].masks;// << (table[selector].bits * i));
         
         decoded[intsout + offset] = temp;
@@ -155,7 +157,7 @@ uint32_t decompress(uint32_t *dest, uint32_t word, int offset)
         //printf("current state of payload: ");
         //print_binary(payload);
     }
-//    for (i = table[selector].numbers; i > 0; i--) {
+//    for (i = table[selector].intstopack; i > 0; i--) {
 //        mask = table[selector].masks << (table[selector].bits * i);
 //        temp = payload & mask;
 //
@@ -181,9 +183,9 @@ uint32_t decode(uint32_t *destination, uint32_t word) {
             bits = table[i].bits;
         }
     }
-    uint32_t numdecompressed = table[bits].numbers;
+    uint32_t numdecompressed = table[bits].intstopack;
     uint32_t payload = word >> 4;
-    for (int i = 0; i < table[selector].numbers; i++) {
+    for (int i = 0; i < table[selector].intstopack; i++) {
 
 
     }
@@ -243,26 +245,22 @@ int main(int argc, char *argv[]) {
     }
     //printf("Using: %s\n", filename);
 
-    postings_list = malloc(NUMBER_OF_DOCS * sizeof postings_list[0]);
-    dgaps = malloc(NUMBER_OF_DOCS * sizeof dgaps[0]);
+    postings_list = malloc(NUMBER_OF_DOCS * sizeof *postings_list);
+    dgaps = malloc(NUMBER_OF_DOCS * sizeof *dgaps);
     compressed = malloc(NUMBER_OF_DOCS * sizeof *compressed);
     decoded = malloc(NUMBER_OF_DOCS * sizeof *decoded);
-    if (NULL == decoded) {
-        printf("malloc error for decompressed array\n");
-    } else {
-        printf("allocated memory for decoded array\n");
-    }
-
+    cr = malloc(NUMBER_OF_LISTS * sizeof *cr);
+    
+    
     /* an array for storing bit width statistics of ints to be compressed */
-    int *bitwidth_stats = malloc(MAX_BITWIDTH * sizeof (bitwidth_stats[0]));
+    int *bitwidths = malloc(MAX_BITWIDTH * sizeof *bitwidths);
     for (i =0; i < MAX_BITWIDTH; i++) {
-        bitwidth_stats[i] = 0;
+        bitwidths[i] = 0;
     }
 
-    /* set up an array for keeping track of list length statistics
-     longest list in wsj postings.bin has length 157870 */
-    int *lengthfreqs = malloc(157871 * sizeof lengthfreqs[0]);
-    memset(lengthfreqs, 0, 157871 * sizeof lengthfreqs[0]);
+    /* set up an array for keeping track of list length statistics */
+    int *lengthfreqs = malloc(MAX_LENGTH * sizeof *lengthfreqs);
+    memset(lengthfreqs, 0, MAX_LENGTH * sizeof *lengthfreqs);
 
     FILE *fp;
     if ((fp = fopen(filename, "rb")) == NULL) {
@@ -278,6 +276,7 @@ int main(int argc, char *argv[]) {
         }
         listnumber++;
         
+        
         /* print current postings list */
         // ***************************
 //        printf("%u: ", (unsigned)length);
@@ -287,7 +286,9 @@ int main(int argc, char *argv[]) {
 //        printf("\n");
 
         /* add this list length to tally of list length frequencies */
+        //printf("list number: %d, list length: %d\n", listnumber, length);
         lengthfreqs[length]++;
+        
         
         /* convert postings list to dgaps list */
         prev = 0;
@@ -304,14 +305,31 @@ int main(int argc, char *argv[]) {
 //        }
 //        printf("\n");
         
-        /* count bits needed for each dgap.
-         currently as cumulative stats for entire set of lists */
+        
+        /* an array for storing bit width statistics for a single list */
+        int *single_list_bitwidths = malloc(MAX_BITWIDTH * sizeof *single_list_bitwidths);
+        for (i = 0; i < MAX_BITWIDTH; i++) {
+            single_list_bitwidths[i] = 0;
+        }
+        
+        /* count bits needed for each dgap, both for a single list and
+         as cumulative stats for entire set of lists */
         int bitwidth;
         for (i = 0; i < length; i++) {
             bitwidth = fls(dgaps[i]);
-            bitwidth_stats[bitwidth]++;
+            bitwidths[bitwidth]++;
+            single_list_bitwidths[bitwidth]++;
         }
+        
+        /* print bitwidth statistics for a single list */
+        // *******************************************
+        printf("Bitwidth stats for %dth list: \n", listnumber);
+        for (i = 0; i < MAX_BITWIDTH; i++) {
+            printf("%d, %d\n", i, single_list_bitwidths[i]);
+        }
+        free(single_list_bitwidths);
 
+        
         // ********* need to fix the return value of encode function **********
         /* compress this postings list */
         uint32_t numencoded = 0;  // return value of encode function, the number of ints compressed
@@ -367,7 +385,7 @@ int main(int argc, char *argv[]) {
 //        for (i = 0; i < length; i++) {
 //            printf("%u, ", decompressed[i]);
 //        }
-//        printf("\n\n\n");
+//        printf("\n\n");
         
         
         /* find errors in compression or decompression */
@@ -440,7 +458,7 @@ int main(int argc, char *argv[]) {
     free(dgaps);
     free(compressed);
     free(decoded);
-    decoded = NULL;
-
+    free(cr);
+    
     return EXIT_SUCCESS;
 }
