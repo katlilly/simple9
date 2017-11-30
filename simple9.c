@@ -204,6 +204,8 @@ uint32_t * makefakedata(uint32_t *dest, int number, int numberofnumbers) {
 }
 
 
+
+
 /* count selector used vs bitwidths for every int in a compressed list
    length is the compressed list length
    returns an array of frequencies for each selector / bitwidth pair */
@@ -387,7 +389,12 @@ int main(int argc, char *argv[])
         /* print bitwidth statistics for a single list */
         // *******************************************
         //using lists 96 and 445139 as examples
-        if (listnumber == 445139) {
+        
+
+        
+        
+        
+        if (listnumber < 10) {
             //printf("length of list %d is %d\n", listnumber, length);
             printf("%d\n", listnumber);
             printf("%d\n", length);
