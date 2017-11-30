@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
         }
         listnumber++;
         if (length > UINT32_MAX - cumulativelength) {
-            printf("overflow\n");
+            printf("overflow wrap around about to happen\n");
             exit(3);
         } else {
             cumulativelength += length;
@@ -400,12 +400,13 @@ int main(int argc, char *argv[])
         
         /* count bits needed for each dgap, both for a single list and
          as cumulative stats for entire set of lists */
-        int bitwidth;
-        for (i = 0; i < length; i++) {
-            bitwidth = fls(dgaps[i]);
-            bitwidths[bitwidth]++;
-            single_list_bitwidths[bitwidth]++;
-        }
+//        int bitwidth;
+//        for (i = 0; i < length; i++) {
+//            bitwidth = fls(dgaps[i]);
+//            bitwidths[bitwidth]++;
+//            //single_list_bitwidths[bitwidth]++;
+//        }
+        
         
         /* find a list of a given length */
 //        if (length > 150000) {
@@ -418,13 +419,17 @@ int main(int argc, char *argv[])
         //using lists 96 and 445139 as examples
         
 
-        
-        
-        
-        if (listnumber < 10) {
+        if (listnumber == 445139) {
             //printf("length of list %d is %d\n", listnumber, length);
             printf("%d\n", listnumber);
             printf("%d\n", length);
+            
+            int bitwidth;
+            for (i = 0; i < length; i++) {
+                bitwidth = fls(dgaps[i]);
+                //bitwidths[bitwidth]++;
+                single_list_bitwidths[bitwidth]++;
+            }
             //printf("Bitwidth stats for %dth list: \n", listnumber);
             for (i = 0; i < MAX_BITWIDTH; i++) {
                 printf("%d, %d\n", i, single_list_bitwidths[i]);
@@ -444,8 +449,8 @@ int main(int argc, char *argv[])
             int * bitsvselectorstats = count_bitsvselector(compressed, compressedwords);
             //print_bitsvselector_human(bitsvselectorstats);
             //print_selectorvbits_human(bitsvselectorstats);
-            print_bitsvselector_csv(bitsvselectorstats);
-            print_selectorvbits_csv(bitsvselectorstats);
+            //print_bitsvselector_csv(bitsvselectorstats);
+            //print_selectorvbits_csv(bitsvselectorstats);
             
             
             /* decompress 66th list while counting selector use vs bitwidths */
@@ -528,10 +533,12 @@ int main(int argc, char *argv[])
    
     }// end read-in of postings lists
 
-    printf("cumulative length of all lists: %ld\n", cumulativelength);
+    /* print list length data */
+    // **********************
+    printf("cumulative length of all lists: %lld\n", cumulativelength);
     // the answer is 41205930
     for (i = 0; i < 5; i++) {
-        printf("%ld\n", cumulativelengths[i]);
+        printf("%lld\n", cumulativelengths[i]);
     }
     
     
