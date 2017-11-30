@@ -1,7 +1,7 @@
 list445139 = csvread('list445139.csv');
 
-listnumber = list445139(1,1)
-length = list445139(2,1)
+listnumber = list445139(1,1);
+length = list445139(2,1);
 
 rawbitwidths = list445139(4:34,:);
 
@@ -15,18 +15,18 @@ rawbitwidths = list445139(4:34,:);
 %*** plot where n-bit ints went *******
 %**************************************
 bitsbyselector = list445139(44:286,:);
-bitwidth1 = bitsbyselector(1:9,2)
-bitwidth2 = bitsbyselector(10:18,2)
-bitwidth3 = bitsbyselector(19:27,2)
-bitwidth4 = bitsbyselector(28:36,2)
+bitwidth1 = bitsbyselector(1:9,2);
+bitwidth2 = bitsbyselector(10:18,2);
+bitwidth3 = bitsbyselector(19:27,2);
+bitwidth4 = bitsbyselector(28:36,2);
 
-selectors = (1:9)
+selectors = (1:9);
 
-plot(selectors, bitwidth1, selectors, bitwidth2, selectors, bitwidth3, selectors, bitwidth4)
-xlabel('selector')
-ylabel('number of ints')
-title('List #445139, 157870 postings')
-legend('1-bit ints','2-bit ints','3-bit ints','4-bit ints')
+%plot(selectors, bitwidth1, selectors, bitwidth2, selectors, bitwidth3, selectors, bitwidth4)
+%xlabel('selector')
+%ylabel('number of ints')
+%title('List #445139, 157870 postings')
+%legend('1-bit ints','2-bit ints','3-bit ints','4-bit ints')
 
 
 
@@ -58,3 +58,18 @@ fls = (1:27);
 %  legend({'1 bit selector', '2 bit selector','3 bit selector','4 bit selector','5 bit selector'})
 
 %axis([1 5 0 80000])
+
+
+
+%plot raw bit with counts
+%***************************
+bitwidths = csvread('list445139bitwidths.csv')
+
+bitwidths = bitwidths(4:10,:)
+bits = bitwidths(1:end,1)
+freqs = bitwidths(1:end,2)
+
+plot(bits, freqs)
+title('List #445139, 157870 postings')
+xlabel('bitwidths')
+ylabel('number of ints')

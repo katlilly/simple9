@@ -63,7 +63,7 @@ selectors(9) = 28;
 plot(selectors, bitwidth1, selectors, bitwidth2, selectors, bitwidth3, selectors, bitwidth4, selectors, bitwidth5, selectors, bitwidth6, selectors, bitwidth7)
 xlabel('selector')
 ylabel('number of ints')
-title('List #445139, 157870 postings')
+title('List #96, 25722 postings')
 legend('1-bit ints','2-bit ints','3-bit ints','4-bit ints','5-bit ints', '6-bit ints', '7-bit ints')
 axis([1 14 0 3500])
 
@@ -71,3 +71,15 @@ xticks([1 2 3 4 5 7 9 14])
 
 
 
+%plot raw bit with counts
+%***************************
+bitwidths = csvread('list96bitwidths.csv')
+
+bitwidths = bitwidths(4:13,:)
+bits = bitwidths(1:end,1)
+freqs = bitwidths(1:end,2)
+
+plot(bits, freqs)
+title('List #96, 25722 postings')
+xlabel('bitwidths')
+ylabel('number of ints')
