@@ -22,13 +22,36 @@ typedef struct
 } selector;
 
 
-/* data structure for selector use statistics */
+/* data structure for selector-use statistics */
 typedef struct
 {
     int selector;
     int frequency;
 } stats;
 
+
+/* data structure for measuring internally wasted bits for each selector */
+typedef struct
+{
+    int selector;
+    int timesused;
+    int wastedbits;
+} wastedbits;
+
+
+// probably this should be declared in main, not here?
+wastedbits wb[] =
+{
+    {1,  0, 0},
+    {2,  0, 0},
+    {3,  0, 0},
+    {4,  0, 0},
+    {5,  0, 0},
+    {7,  0, 0},
+    {9,  0, 0},
+    {14, 0, 0},
+    {28, 0, 0}
+};
 
 /* data stucture for recording statistics for a single postings list */
 typedef struct
@@ -155,7 +178,6 @@ uint32_t decompress(uint32_t *dest, uint32_t word, int offset)
     int i, intsout = 0;
     uint32_t selector, mask, payload, temp;
     selector = word & 0xf;
-    //mask = (1 << (selector)) - 1;
     mask = table[selector].masks;
     payload = word >> 4;
     for (i = 0; i < table[selector].intstopack; i++) {
@@ -165,6 +187,43 @@ uint32_t decompress(uint32_t *dest, uint32_t word, int offset)
         payload = payload >> table[selector].bits;
     }
     return intsout;
+}
+
+uint32_t decompress_countwasted(uint32_t *dest, uint32_t word, int offset)
+{
+    int i, wasted, intsout = 0;
+    uint32_t selector, mask, payload, temp;
+    selector = word & 0xf;
+    mask = table[selector].masks;
+    payload = word >> 4;
+    for (i = 0; i < table[selector].intstopack; i++) {
+        temp = payload & mask;
+        wasted = table[selector].bits - fls(temp);
+        wb[selector].wastedbits += wasted;
+        decoded[intsout + offset] = temp;
+        intsout++;
+        payload = payload >> table[selector].bits;
+    }
+    wb[selector].timesused++;
+    return intsout;
+}
+
+
+void print_wasted_bits_per_selector_human(wastedbits *wbs)
+{
+    printf("selector:  times used:  wastedbits:  wasted per word:\n");
+    for (int i = 0; i < number_of_selectors; i++) {
+        printf("%2d, \t\t%5d, \t\t\t%5d", table[i].bits, wbs[i].timesused, wbs[i].wastedbits);
+        printf("\t\t %.2f\n", (double) wbs[i].wastedbits / wbs[i].timesused);
+    }
+}
+
+void print_wasted_bits_per_selector_csv(wastedbits *wbs)
+{
+    for (int i = 0; i < number_of_selectors; i++) {
+        printf("%d, %d, %d, ", table[i].bits, wbs[i].timesused, wbs[i].wastedbits);
+        printf("%.2f\n", (double) wbs[i].wastedbits / wbs[i].timesused);
+    }
 }
 
 
@@ -177,6 +236,7 @@ int compare_ints(const void *a, const void *b) {
 
 
 /* this function repeats most of what the decompression function does */
+// ***** old version, probably doesn't work corrently with new setup ****
 int countwastedbits(uint32_t word) {
     int i;
     uint32_t selector, mask, payload, temp, leadingzeros = 0;
@@ -203,7 +263,6 @@ uint32_t * makefakedata(uint32_t *dest, int number, int numberofnumbers) {
     }
     return dest;
 }
-
 
 
 
@@ -296,7 +355,7 @@ int main(int argc, char *argv[])
     uint32_t i, prev, length;
     uint32_t compressedwords;
     uint32_t compressedints;
-    long long cumulativelength = 0;
+    //long long cumulativelength = 0;
     long long cumulativelengths[5];
     
     const char *filename;
@@ -340,28 +399,29 @@ int main(int argc, char *argv[])
             exit(printf("i/o error\n"));
         }
         listnumber++;
-        if (length > UINT32_MAX - cumulativelength) {
-            printf("overflow wrap around about to happen\n");
-            exit(3);
-        } else {
-            cumulativelength += length;
-        }
         
         
-
-        //printf("length of current list: %d", l);
-        if (length < 100) {
-            cumulativelengths[0] += length;
-        } else if (length < 1000) {
-            cumulativelengths[1] += length;
-        } else if (length < 10000) {
-            cumulativelengths[2] += length;
-        } else if (length < 100000) {
-            cumulativelengths[3] += length;
-        } else {
-            cumulativelengths[4] += length;
-        }
-            
+        /* calculate what portion of the data is in lists of a given length */
+        // ****************************************************************
+//        if (length > UINT32_MAX - cumulativelength) {
+//            printf("overflow wrap around about to happen\n");
+//            exit(3);
+//        } else {
+//            cumulativelength += length;
+//        }
+//        //printf("length of current list: %d", l);
+//        if (length < 100) {
+//            cumulativelengths[0] += length;
+//        } else if (length < 1000) {
+//            cumulativelengths[1] += length;
+//        } else if (length < 10000) {
+//            cumulativelengths[2] += length;
+//        } else if (length < 100000) {
+//            cumulativelengths[3] += length;
+//        } else {
+//            cumulativelengths[4] += length;
+//        }
+        
         
         /* print current postings list */
         // ***************************
@@ -373,7 +433,7 @@ int main(int argc, char *argv[])
 
         /* add this list length to tally of list length frequencies */
         //printf("list number: %d, list length: %d\n", listnumber, length);
-        lengthfreqs[length]++;
+        //lengthfreqs[length]++;
         
         
         /* convert postings list to dgaps list */
@@ -393,10 +453,10 @@ int main(int argc, char *argv[])
         
         
         /* an array for storing bit width statistics for a single list */
-        int *single_list_bitwidths = malloc(MAX_BITWIDTH * sizeof *single_list_bitwidths);
-        for (i = 0; i < MAX_BITWIDTH; i++) {
-            single_list_bitwidths[i] = 0;
-        }
+//        int *single_list_bitwidths = malloc(MAX_BITWIDTH * sizeof *single_list_bitwidths);
+//        for (i = 0; i < MAX_BITWIDTH; i++) {
+//            single_list_bitwidths[i] = 0;
+//        }
         
         /* count bits needed for each dgap, both for a single list and
          as cumulative stats for entire set of lists */
@@ -414,29 +474,33 @@ int main(int argc, char *argv[])
 //            exit(1);
 //        }
         
-        /* print bitwidth statistics for a single list */
+        
+        /* print statistics for a specified single list */
         // *******************************************
         //using lists 96 and 445139 as examples
-        
-
+      
         if (listnumber == 445139) {
             //printf("length of list %d is %d\n", listnumber, length);
             printf("%d\n", listnumber);
             printf("%d\n", length);
             
-            int bitwidth;
-            for (i = 0; i < length; i++) {
-                bitwidth = fls(dgaps[i]);
-                //bitwidths[bitwidth]++;
-                single_list_bitwidths[bitwidth]++;
-            }
-            //printf("Bitwidth stats for %dth list: \n", listnumber);
-            for (i = 0; i < MAX_BITWIDTH; i++) {
-                printf("%d, %d\n", i, single_list_bitwidths[i]);
-            }
-            free(single_list_bitwidths);
             
-            /* compress 66th list */
+            /* get bit width data for a single list */
+            // ************************************
+//            int bitwidth;
+//            for (i = 0; i < length; i++) {
+//                bitwidth = fls(dgaps[i]);
+//                //bitwidths[bitwidth]++;
+//                single_list_bitwidths[bitwidth]++;
+//            }
+//            //printf("Bitwidth stats for %dth list: \n", listnumber);
+//            for (i = 0; i < MAX_BITWIDTH; i++) {
+//                printf("%d, %d\n", i, single_list_bitwidths[i]);
+//            }
+//            free(single_list_bitwidths);
+            
+            
+            /* compress 1 list */
             uint32_t numencoded = 0;  // return value of encode function, the number of ints compressed
             compressedwords = 0;      // offset for position in output array "compressed"
             compressedints = 0;       // offset for position in input array "dgaps"
@@ -446,23 +510,27 @@ int main(int argc, char *argv[])
             }
             
             /* make data for the 9 graphs */
-            int * bitsvselectorstats = count_bitsvselector(compressed, compressedwords);
+            //int * bitsvselectorstats = count_bitsvselector(compressed, compressedwords);
             //print_bitsvselector_human(bitsvselectorstats);
             //print_selectorvbits_human(bitsvselectorstats);
             //print_bitsvselector_csv(bitsvselectorstats);
             //print_selectorvbits_csv(bitsvselectorstats);
             
             
-            /* decompress 66th list while counting selector use vs bitwidths */
+            /* decompress a single list while counting selector use vs bitwidths */
             // ************* to do ************************
             int offset = 0;  // reset number of decompressed ints to zero for each word
-            for (i = 0; i < compressedwords; i++) {
-                offset += decompress(decoded, compressed[i], offset);
+            // don't look at last word because it likely isn't full
+            for (i = 0; i < compressedwords - 1; i++) {
+                offset += decompress_countwasted(decoded, compressed[i], offset);
+                
             }
-        }
+            
+            print_wasted_bits_per_selector_csv(wb);
+            
+        }// end specified single list stuff
 
 
-        
         
         /* compress this postings list */
 //        uint32_t numencoded = 0;  // return value of encode function, the number of ints compressed
@@ -485,6 +553,7 @@ int main(int argc, char *argv[])
 //            //printf("selector %d\n", table[selector].bits);
 //        }
 
+        
         /* add compression ratio stats for this list */
         // *****************************************
 //        cr[listnumber].listlength = length;
@@ -535,11 +604,11 @@ int main(int argc, char *argv[])
 
     /* print list length data */
     // **********************
-    printf("cumulative length of all lists: %lld\n", cumulativelength);
-    // the answer is 41205930
-    for (i = 0; i < 5; i++) {
-        printf("%lld\n", cumulativelengths[i]);
-    }
+//    printf("cumulative length of all lists: %lld\n", cumulativelength);
+//    // the answer is 41205930
+//    for (i = 0; i < 5; i++) {
+//        printf("%lld\n", cumulativelengths[i]);
+//    }
     
     
     /* print bitwidth stats array to export to matlab */
