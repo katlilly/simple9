@@ -10,7 +10,8 @@
 #define MAX_BITWIDTH 32
 #define MAX_LENGTH 157871
 #define NUMBER_OF_LISTS 499693
-
+// cumulative length of all lists in wsj dataset is 41 205 930
+// so longest list is 0.4% of total data
 
 /* data structure for each line in the selector table */
 typedef struct
@@ -295,7 +296,9 @@ int main(int argc, char *argv[])
     uint32_t i, prev, length;
     uint32_t compressedwords;
     uint32_t compressedints;
-
+    long long cumulativelength = 0;
+    long long cumulativelengths[5];
+    
     const char *filename;
     if (argc == 2) {
         filename = argv[1];
@@ -310,6 +313,9 @@ int main(int argc, char *argv[])
     decoded = malloc(NUMBER_OF_DOCS * sizeof *decoded);
     cr = malloc(NUMBER_OF_LISTS * sizeof *cr);
     
+    for (i = 0; i < 5; i++) {
+        cumulativelengths[i] = 0;
+    }
     
     /* an array for storing bit width statistics of ints to be compressed */
     int *bitwidths = malloc(MAX_BITWIDTH * sizeof *bitwidths);
@@ -334,7 +340,22 @@ int main(int argc, char *argv[])
             exit(printf("i/o error\n"));
         }
         listnumber++;
+        cumulativelength += length;
         
+        
+        //printf("length of current list: %d", l);
+        if (length < 100) {
+            cumulativelengths[0] += length;
+        } else if (length < 1000) {
+            cumulativelengths[1] += length;
+        } else if (length < 10000) {
+            cumulativelengths[2] += length;
+        } else if (length < 100000) {
+            cumulativelengths[3] += length;
+        } else {
+            cumulativelengths[4] += length;
+        }
+            
         
         /* print current postings list */
         // ***************************
@@ -429,6 +450,8 @@ int main(int argc, char *argv[])
             }
         }
 
+
+        
         
         /* compress this postings list */
 //        uint32_t numencoded = 0;  // return value of encode function, the number of ints compressed
@@ -499,6 +522,12 @@ int main(int argc, char *argv[])
    
     }// end read-in of postings lists
 
+    printf("cumulative length of all lists: %ld\n", cumulativelength);
+    // the answer is 41205930
+    for (i = 0; i < 5; i++) {
+        printf("%ld\n", cumulativelengths[i]);
+    }
+    
     
     /* print bitwidth stats array to export to matlab */
     //*************************************************
