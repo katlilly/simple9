@@ -340,9 +340,15 @@ int main(int argc, char *argv[])
             exit(printf("i/o error\n"));
         }
         listnumber++;
-        cumulativelength += length;
+        if (length > UINT32_MAX - cumulativelength) {
+            printf("overflow\n");
+            exit(3);
+        } else {
+            cumulativelength += length;
+        }
         
         
+
         //printf("length of current list: %d", l);
         if (length < 100) {
             cumulativelengths[0] += length;
