@@ -73,3 +73,23 @@ plot(bits, freqs)
 title('List #445139, 157870 postings')
 xlabel('bitwidths')
 ylabel('number of ints')
+
+
+%plot wasted bit stats for each selector
+%******************************************
+wastedbits = csvread('list445139wbperselector.csv')
+selectors = wastedbits(3:end,1)
+timesused = wastedbits(3:end,2)
+totalwasted = wastedbits(3:end,3)
+wastedperword = wastedbits(3:end,4)
+wastedperword(isnan(wastedperword)) = 0;
+
+
+plot(selectors, wastedperword)
+title('mean wasted bits per word for each selector, list445139')
+xticks([1 2 3 4 5 7 9 14])
+axis([0 10 0 18])
+
+plot(selectors, totalwasted)
+axis([0 10 0 60000])
+title('total wasted bits for each selector, list445139')
