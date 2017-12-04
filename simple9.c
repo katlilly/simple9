@@ -265,6 +265,57 @@ uint32_t * makefakedata(uint32_t *dest, int number, int numberofnumbers) {
 }
 
 
+/* measure bit differences in uncompressed list
+   return a frequency array of how many times an int is x bits
+   different from previous int */
+int * count_bitdiffs(uint32_t *raw, int length)
+{
+    int diff;
+    int *bitdiffs = malloc(32 * sizeof *bitdiffs);
+    memset(bitdiffs, 0, 32 * sizeof *bitdiffs);
+    for (int i = 5; i < length; i++) {
+        if (fls(raw[i]) > fls(raw[i-5])) {
+            diff = fls(raw[i]) - fls(raw[i-5]);
+        } else {
+            diff = fls(raw[i-5]) - fls(raw[i]);
+        }
+        bitdiffs[diff]++;
+    }
+    return bitdiffs;
+}
+
+
+/* measure bit length differences from neighbours, and output
+   an array of bit lenth differences
+   currently am setting all differences as positive numbers
+   may want to change this in future?
+   data returned from this function to be statistically analysed */
+int * list_bitdiffs(uint32_t *raw, int length)
+{
+    int diff;
+    int *bitdiffslist = malloc(length * sizeof *bitdiffslist);
+    memset(bitdiffslist, 0, length * sizeof *bitdiffslist);
+    for (int i = 1; i < length; i++) {
+        if (fls(raw[i]) > fls(raw[i-1])) {
+            diff = fls(raw[i]) - fls(raw[i-1]);
+        } else {
+            diff = fls(raw[i-1]) - fls(raw[i]);
+        }
+        bitdiffslist[i] = diff;
+    }
+    return bitdiffslist;
+}
+
+
+void print_bitdiffs(int *diffs)
+{
+    printf("diff: freq:\n");
+    for (int i = 0; i < 10; i++) {
+        printf("%d\t%d\n", i, diffs[i]);
+    }
+}
+
+
 
 /* count selector used vs bitwidths for every int in a compressed list
    length is the compressed list length
@@ -280,11 +331,16 @@ int * count_bitsvselector(uint32_t *compressed, int length)
     for (int i = 0; i < length; i++) {
         uint32_t word = *(compressed + i);
         int selector = word & 0xf;
-        uint32_t payload = word >> 4;
-        for (int j = 0; j < table[selector].intstopack; j++) {
-            temp = payload & table[selector].masks;
-            result[fls(temp) + selector * max_bitwidth]++;
-            payload = payload >> table[selector].bits;
+        if (selector == 3) {
+            //printf("this word compressed with %d bit selector\n", table[selector].bits);
+            uint32_t payload = word >> 4;
+            for (int j = 0; j < table[selector].intstopack; j++) {
+                temp = payload & table[selector].masks;
+                result[fls(temp) + selector * max_bitwidth]++;
+                payload = payload >> table[selector].bits;
+                //printf("%d, ", fls(temp));
+            }
+            //printf("\n");
         }
     }
     return result;
@@ -346,7 +402,14 @@ void print_selectorvbits_csv(int *bitsvselector)
     }
 }
 
-
+void print_list(uint32_t *list, int length)
+{
+    int i;
+    for (i = 0; i < length; i++) {
+        printf("%d\n", list[i]);
+    }
+    printf("\n");
+}
 
 
 int main(int argc, char *argv[])
@@ -423,18 +486,8 @@ int main(int argc, char *argv[])
 //        }
         
         
-        /* print current postings list */
-        // ***************************
-//        printf("%u: ", (unsigned)length);
-//        for (uint32_t *where = postings_list; where < postings_list + length; where++) {
-//            printf("%u ", (unsigned)*where);
-//        }
-//        printf("\n");
 
-        /* add this list length to tally of list length frequencies */
-        //printf("list number: %d, list length: %d\n", listnumber, length);
-        //lengthfreqs[length]++;
-        
+
         
         /* convert postings list to dgaps list */
         prev = 0;
@@ -443,13 +496,6 @@ int main(int argc, char *argv[])
             prev = postings_list[i];
         }
         
-        /* print dgap lists */
-        // ****************
-//        printf("%d: ", length);
-//        for (i = 0; i < length; i++) {
-//            printf("%d, ", dgaps[i]);
-//        }
-//        printf("\n");
         
         
         /* an array for storing bit width statistics for a single list */
@@ -468,23 +514,21 @@ int main(int argc, char *argv[])
 //        }
         
         
-        /* find a list of a given length */
-//        if (length > 150000) {
-//            printf("length of list %d is %d\n", listnumber, length);
-//            exit(1);
-//        }
         
         
         /* print statistics for a specified single list */
         // *******************************************
         //using lists 96 and 445139 as examples
       
-        if (listnumber == 445139) {
+        if (listnumber == 96) {
             //printf("length of list %d is %d\n", listnumber, length);
             printf("%d\n", listnumber);
             printf("%d\n", length);
             
+            print_list(postings_list, length);
+            print_list(dgaps, length);
             
+          
             /* get bit width data for a single list */
             // ************************************
 //            int bitwidth;
@@ -508,25 +552,24 @@ int main(int argc, char *argv[])
                 numencoded = encode(compressed + compressedwords, dgaps + compressedints, length - compressedints);
                 compressedwords++;
             }
-            
-            /* make data for the 9 graphs */
-            //int * bitsvselectorstats = count_bitsvselector(compressed, compressedwords);
-            //print_bitsvselector_human(bitsvselectorstats);
-            //print_selectorvbits_human(bitsvselectorstats);
-            //print_bitsvselector_csv(bitsvselectorstats);
-            //print_selectorvbits_csv(bitsvselectorstats);
+            printf("compressed length of list %d: %d\n", listnumber, compressedwords);
             
             
             /* decompress a single list while counting selector use vs bitwidths */
-            // ************* to do ************************
+            // *************************************
             int offset = 0;  // reset number of decompressed ints to zero for each word
             // don't look at last word because it likely isn't full
             for (i = 0; i < compressedwords - 1; i++) {
                 offset += decompress_countwasted(decoded, compressed[i], offset);
-                
             }
             
-            print_wasted_bits_per_selector_csv(wb);
+            int *list96bitdiffs = count_bitdiffs(dgaps, length);
+            print_bitdiffs(list96bitdiffs);
+            
+            int *list96bitdiffslist = list_bitdiffs(dgaps, length);
+            
+            // measure variance of list of bitwidth differences from neighbours
+            
             
         }// end specified single list stuff
 
