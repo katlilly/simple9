@@ -235,24 +235,6 @@ int compare_ints(const void *a, const void *b) {
 }
 
 
-/* this function repeats most of what the decompression function does */
-// ***** old version, probably doesn't work corrently with new setup ****
-int countwastedbits(uint32_t word) {
-    int i;
-    uint32_t selector, mask, payload, temp, leadingzeros = 0;
-    selector = word & 0xf;
-    selector = table[selector].bits;
-    //printf("selector: %d\n", selector);
-    //selectorfreqs[selector]++;
-    mask = (1 << (selector)) - 1;
-    payload = word >> 4;
-    for (i = 0; i < (28/selector) ; i++) {
-        temp = payload & mask;
-        payload = payload >> selector;
-        leadingzeros += selector - fls(temp);
-    }
-    return leadingzeros;
-}
 
 
 /* function for making synthetic data that will compress in a known way */
