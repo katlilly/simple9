@@ -3,7 +3,7 @@
 #include <strings.h>
 #include <string.h>
 #include <stdint.h>
-#include "compress.h"
+//#include "compress.h"
 
 
 /* data structure for each line in the selector table */
@@ -16,20 +16,20 @@ typedef struct
 
 
 /* the selectors for simple-9 */
-selector table[] =
-    {
-        {1,  28, 1},
-        {2,  14, 3},
-        {3,  9,  7},
-        {4,  7,  0xf},
-        {5,  5,  0x1f},
-        {7,  4,  0x7f},
-        {9,  3,  0x1ff},
-        {14, 2,  0x3fff},
-        {28, 1,  0xfffffff}
-    };
+/* selector table[] = */
+/*     { */
+/*         {1,  28, 1}, */
+/*         {2,  14, 3}, */
+/*         {3,  9,  7}, */
+/*         {4,  7,  0xf}, */
+/*         {5,  5,  0x1f}, */
+/*         {7,  4,  0x7f}, */
+/*         {9,  3,  0x1ff}, */
+/*         {14, 2,  0x3fff}, */
+/*         {28, 1,  0xfffffff} */
+/*     }; */
 
-int number_of_selectors = sizeof(table) / sizeof(*table);
+/* int number_of_selectors = sizeof(table) / sizeof(*table); */
 
 
 /* return minimum (or first if equal) of two input values */

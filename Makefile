@@ -19,5 +19,8 @@ do-wsj-compress: wsj-compress postings.bin
 	./wsj-compress postings.bin
 
 
+compressionstats: compressionstats.c
+	$(CC) $(CFLAGS) -o compressionstats compressionstats.c 
+
 clean:
 	rm wsj-compress compress.o
