@@ -96,6 +96,7 @@ int main()
     perm1(x, N, show);
     printf("\n\n");
     perm2(x, N, show);
+    printf("\n\n");
     perm3(x, N, show);
  
     return 0;
