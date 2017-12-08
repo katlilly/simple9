@@ -158,7 +158,7 @@ int * make_combination(int mode, int spread, int excpfreq)
         printf("entered frequent exception case\n");
         sum = 0;
         if (lowexcp > 0) {
-            printf("using low exception\n");
+            printf("low exception is non-zero\n");
             //add each of three repeatedly
             result[0] = mode;
             sum = mode;
@@ -166,7 +166,7 @@ int * make_combination(int mode, int spread, int excpfreq)
                 printf("i: %d\n", i);
                 if (sum + lowexcp > 24) {
                     
-                    break;
+                    //break;
                 } else {
                     printf("adding: %d, sum: %d\n", lowexcp, sum);
                     result[i] = lowexcp;
@@ -174,7 +174,7 @@ int * make_combination(int mode, int spread, int excpfreq)
                 }
                 if (sum + mode > 24) {
                 
-                    break;
+                    // break;
                 } else {
                     printf("adding: %d, sum: %d\n", mode, sum);
                     result[i+1] = mode;
@@ -182,11 +182,15 @@ int * make_combination(int mode, int spread, int excpfreq)
                 }
                 if (sum + highexcp > 24) {
                 
-                    break;
+                    //break;
                 } else {
                     printf("adding: %d, sum: %d\n", highexcp, sum);
                     result[i+2] = highexcp;
                     sum += highexcp;
+                }
+                if (sum + lowexcp > 24) {
+                    ("exiting for loop\n");
+                    break;
                 }
             }
 
