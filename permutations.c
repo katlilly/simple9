@@ -275,7 +275,7 @@ int main(void)
 
     int mode = 4;
     int spread = 2;
-    int exceptionfreq = 3;
+    int exceptionfreq = 1;
 
     make_selector_table(mode, spread, exceptionfreq);
     
