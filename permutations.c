@@ -49,7 +49,7 @@ int next_lex_perm(int *a, int n) {
  
 /* generates permutations in correct order and outputs unique ones
    taken from rosettacode */
-void generate_perms(int *x, int n, int callback(int *, int))
+void generate_perms(int *x, int n, void callback(int *, int))
 {
     do {
         if (callback) callback(x, n);
@@ -132,8 +132,6 @@ int * make_combination(int mode, int spread, int excpfreq)
             /* is necessary to sort before generating perms or won't get them all */
             qsort(result, numints, sizeof *result, compare_ints);
             generate_perms(result, numints, output_perms);
-
-
         }
 
         /* output high exceptions */
@@ -189,7 +187,7 @@ int * make_combination(int mode, int spread, int excpfreq)
                     sum += highexcp;
                 }
                 if (sum + lowexcp > 24) {
-                    ("exiting for loop\n");
+                    printf("exiting for loop\n");
                     break;
                 }
             }
@@ -218,8 +216,6 @@ int * make_combination(int mode, int spread, int excpfreq)
         qsort(result, numints, sizeof result[0], compare_ints);
         generate_perms(result, numints, output_perms);
     }
-    
-    
     
     return result;
 }
