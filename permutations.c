@@ -15,7 +15,7 @@ void output_perms(int *array, int length)
 {
     int i;
     for (i = 0; i < length; i++) {
-        printf("%d%c", array[i], i == length -1 ? '\n' : ' ');
+        printf("%d%c", array[i], i == length - 1 ? '\n' : ' ');
     }
 }
  
@@ -118,6 +118,7 @@ int * make_combination(int mode, int spread, int excpfreq)
     /* single exception case */
     /* ********************* */
     if (excpfreq == 1) {
+        
         /* output low exceptions */
         if (lowexcp > 0) {
             result[0] = lowexcp;
@@ -144,6 +145,7 @@ int * make_combination(int mode, int spread, int excpfreq)
             sum += mode;
             numints = i;
         }
+        numints = i;
         /* is necessary to sort before generating perms or won't get them all */
         qsort(result, numints, sizeof *result, compare_ints);
         generate_perms(result, numints, output_perms);
@@ -153,69 +155,68 @@ int * make_combination(int mode, int spread, int excpfreq)
     /* frequent exceptions case */
     /* ************************ */
     if (excpfreq == 3) {
-        printf("entered frequent exception case\n");
         sum = 0;
         if (lowexcp > 0) {
             printf("low exception is non-zero\n");
-            //add each of three repeatedly
-            result[0] = mode;
-            sum = mode;
+            /* low exception valid, add each of three repeatedly */
+            result[0] = highexcp;
+            sum = highexcp;
             for (i = 1; sum <= 24; i += 3) {
-                printf("i: %d\n", i);
-                if (sum + lowexcp > 24) {
-                    
-                    //break;
-                } else {
-                    printf("adding: %d, sum: %d\n", lowexcp, sum);
+                if (sum + lowexcp <= 24) {
                     result[i] = lowexcp;
                     sum += lowexcp;
-                }
-                if (sum + mode > 24) {
-                
-                    // break;
-                } else {
-                    printf("adding: %d, sum: %d\n", mode, sum);
+                    numints = i+1;
+                } else break;
+                if (sum + mode <= 24) {
                     result[i+1] = mode;
                     sum += mode;
-                }
-                if (sum + highexcp > 24) {
-                
-                    //break;
-                } else {
-                    printf("adding: %d, sum: %d\n", highexcp, sum);
+                    numints = i+2;
+                } else break;
+                if (sum + highexcp <= 24) {
                     result[i+2] = highexcp;
                     sum += highexcp;
+                    numints = i+3;
+                } else if (sum + mode <= 24) {
+                    result[i+2] = mode;
+                    sum += mode;
+                    numints = i+3;
+                } else if (sum + lowexcp <= 24) {
+                    result [i+2] = lowexcp;
+                    sum += lowexcp;
+                    numints = i+3;
                 }
-                if (sum + lowexcp > 24) {
-                    printf("exiting for loop\n");
-                    break;
-                }
-            }
+            } /* end three bitwidths, high frequency exception case */
 
         } else {
-            //add each of two repeatedly
-            printf("not using low exception\n");
-            result[0] = mode;
-            sum = mode;
-            for (i = 1; sum <= 24; i += 2) {
-                if (sum + mode > 24) {
-                    break;
-                } else {
+            /* low exception invalid, add each of two repeatedly */
+            result[0] = highexcp;
+            sum = highexcp;
+            for (i = 1; i <= 24; i+=2) {
+                if (sum + mode <= 24) {
                     result[i] = mode;
                     sum += mode;
-                }
-                if (sum + highexcp > 24) {
-                    break;
-                } else {
+                    numints = i+1;
+                    printf("numints: %d, sum: %d\n", numints, sum);
+                } else break;
+                if (sum + highexcp <= 24) {
                     result[i+1] = highexcp;
                     sum += highexcp;
+                    numints = i+2;
+                    printf("numints: %d, sum: %d\n", numints, sum);
+                } else if (sum + mode <= 24) {
+                    result[i+1] = mode;
+                    sum += mode;
+                    numints = i+2;
+                    printf("numints: %d, sum: %d\n", numints, sum);
                 }
-            }
-
+            } /* end two bitwidths, high frequency exception case */ 
         }
-        qsort(result, numints, sizeof result[0], compare_ints);
+        for (i = 0; i < numints; i++) {
+            printf("%d%c", result[i], i == numints - 1 ? '\n' : ' ');
+        }
+        qsort(result, numints, sizeof *result, compare_ints);
         generate_perms(result, numints, output_perms);
-    }
+    } /* end high frequency exception case */ 
     
     return result;
 }
@@ -233,7 +234,7 @@ void make_selector_table(int mode, int spread, int exceptionfreq)
         int *combination = make_combination(mode, spread, exceptionfreq);
 
         /* these below lines can be done better, probably should specify each line
-           manually when i > 4 */
+28           manually when i > 4 */
         for (i = mode + 1; i < 24; i++) {
         for (j = 1; j*i <= 24; j++) {
             printf("%d ", i);
@@ -271,7 +272,7 @@ int main(void)
 
     int mode = 4;
     int spread = 2;
-    int exceptionfreq = 1;
+    int exceptionfreq = 3;
 
     make_selector_table(mode, spread, exceptionfreq);
     
