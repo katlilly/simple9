@@ -22,6 +22,15 @@ typedef struct
 } selector;
 
 
+/* data structure for each line in combination selector table */
+typedef struct
+{
+    int intstopack;
+    uint32_t *bits;
+} combselector;
+
+
+
 /* data structure for selector-use statistics */
 typedef struct
 {
@@ -79,6 +88,22 @@ selector table[] =
 int number_of_selectors = sizeof(table) / sizeof(*table);
 
 
+combselector combtable[] =
+{
+    {24, NULL},
+    {23, NULL},
+    {23, NULL},
+    {23, NULL},
+    {23, NULL},
+    {12, NULL},
+    {6, NULL},
+    {2, NULL},
+    {1, NULL}
+};
+
+int number_of_combselectors = sizeof(combtable) / sizeof(*combtable);
+
+
 /* array of stats structs to record selector use statistics for entire dataset,
  initialise freqs to zero */
 stats selectorfreqs[] =
@@ -101,6 +126,20 @@ uint32_t *dgaps = NULL;
 uint32_t *compressed = NULL;
 uint32_t *decoded = NULL;
 
+
+
+
+void print_combtable(combselector *ctable)
+{
+    int i, j;
+    for (i = 0; i < number_of_combselectors; i++) {
+        printf("#%d, %d ints, ", i, ctable[i].intstopack);
+        for (j = 0; j < ctable[i].intstopack; j++) {
+            printf("%d ", ctable[i].bits[j]);
+        }
+        printf("\n");
+    }
+}
 
 /* print an unsigned 32 bit int in big-endian binary */
 void print_binary(uint32_t num)
@@ -502,13 +541,13 @@ int main(int argc, char *argv[])
         // *******************************************
         //using lists 96 and 445139 as examples
       
-        if (listnumber == 96) {
+        if (listnumber == 445139) {
             //printf("length of list %d is %d\n", listnumber, length);
             printf("%d\n", listnumber);
             printf("%d\n", length);
             
-            print_list(postings_list, length);
-            print_list(dgaps, length);
+            //print_list(postings_list, length);
+            //print_list(dgaps, length);
             
           
             /* get bit width data for a single list */
@@ -548,7 +587,7 @@ int main(int argc, char *argv[])
             int *list96bitdiffs = count_bitdiffs(dgaps, length);
             print_bitdiffs(list96bitdiffs);
             
-            int *list96bitdiffslist = list_bitdiffs(dgaps, length);
+            //int *list96bitdiffslist = list_bitdiffs(dgaps, length);
             
             // measure variance of list of bitwidth differences from neighbours
             
@@ -684,7 +723,35 @@ int main(int argc, char *argv[])
 //        printf("%d, %d\n", selectorfreqs[j].selector, selectorfreqs[j].frequency);
 //    }
 
-
+    /* manually setting some selector values to test out compression */
+    for (i = 0; i < number_of_combselectors; i++) {
+        combtable[i].bits = malloc(combtable[i].intstopack * sizeof *combtable[i].bits);
+        memset(combtable[i].bits, 0, combtable[i].intstopack * sizeof(*combtable[i].bits));
+    }
+    int j;
+    for (j = 0; j < 5; j++) {
+        for (i = 0; i < combtable[j].intstopack; i++) {
+            combtable[j].bits[i] = 1;
+        }
+    }
+    combtable[1].bits[22] = 2;
+    combtable[2].bits[21] = 2;
+    combtable[3].bits[20] = 2;
+    combtable[4].bits[19] = 2;
+    
+    for (i = 0; i < combtable[5].intstopack; i++) {
+        combtable[5].bits[i] = 2;
+    }
+    for (i = 0; i < combtable[6].intstopack; i++) {
+        combtable[6].bits[i] = 4;
+    }
+    combtable[7].bits[0] = 12;
+    combtable[7].bits[1] = 12;
+    combtable[8].bits[0] = 24;
+    /* end manual setup of selector table for long list */
+    
+    print_combtable(combtable);
+    
     free(postings_list);
     free(dgaps);
     free(compressed);

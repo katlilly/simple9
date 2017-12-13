@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-
+int numperms;
 
 int compare_ints(const void *a, const void *b) {
     const int *ia = (const int *) a;
@@ -53,6 +53,7 @@ void generate_perms(int *x, int n, void callback(int *, int))
 {
     do {
         if (callback) callback(x, n);
+        numperms++;
     } while (next_lex_perm(x, n));
 }
  
@@ -65,13 +66,13 @@ void generate_perms(int *x, int n, void callback(int *, int))
 void generate_permutations_iterative_noduplicates(int n, int *array)
 {
 #define swap(i, j) {temp = array[i]; array[i] = array[j]; array[j] = temp;}
-    int temp, numswaps = 0;
+    int i, temp, numswaps = 0;
     int *c = malloc(n * sizeof *c);
     memset(c, 0, n * sizeof *c);
 
     output_perms(array, n);
 
-    int i = 0;
+    i = 0;
     while (i < n) {
         if (c[i] < i) {
             if (i % 2 == 0) {
@@ -104,21 +105,20 @@ void generate_permutations_iterative_noduplicates(int n, int *array)
 
 int * make_combination(int mode, int spread, int excpfreq)
 {
+    int i, sum, numints, highexcp, lowexcp;
     /* always use 8 bits for selectors?
        start by assuming 8 bits for selectors? */
     /* int **table = malloc(256 * sizeof **table); */
     int *result = malloc(24 * sizeof *result);
     memset(result, 0, 24 * sizeof *result); 
-    int i, sum, numints;
-        
-    int highexcp = mode + spread;
-    int lowexcp = mode - spread;
-    
 
+        
+    highexcp = mode + spread;
+    lowexcp = mode - spread;
+    
     /* single exception case */
     /* ********************* */
     if (excpfreq == 1) {
-        
         /* output low exceptions */
         if (lowexcp > 0) {
             result[0] = lowexcp;
@@ -134,7 +134,7 @@ int * make_combination(int mode, int spread, int excpfreq)
             qsort(result, numints, sizeof *result, compare_ints);
             generate_perms(result, numints, output_perms);
         }
-
+        
         /* output high exceptions */
         result[0] = highexcp;
         sum = highexcp;
@@ -145,7 +145,6 @@ int * make_combination(int mode, int spread, int excpfreq)
             sum += mode;
             numints = i;
         }
-        numints = i;
         /* is necessary to sort before generating perms or won't get them all */
         qsort(result, numints, sizeof *result, compare_ints);
         generate_perms(result, numints, output_perms);
@@ -191,23 +190,20 @@ int * make_combination(int mode, int spread, int excpfreq)
             /* low exception invalid, add each of two repeatedly */
             result[0] = highexcp;
             sum = highexcp;
-            for (i = 1; i <= 24; i+=2) {
+            for (i = 1; i <= 24; i += 2) {
                 if (sum + mode <= 24) {
                     result[i] = mode;
                     sum += mode;
-                    numints = i+1;
-                    printf("numints: %d, sum: %d\n", numints, sum);
+                    numints = i + 1;
                 } else break;
                 if (sum + highexcp <= 24) {
                     result[i+1] = highexcp;
                     sum += highexcp;
-                    numints = i+2;
-                    printf("numints: %d, sum: %d\n", numints, sum);
+                    numints = i + 2;
                 } else if (sum + mode <= 24) {
                     result[i+1] = mode;
                     sum += mode;
-                    numints = i+2;
-                    printf("numints: %d, sum: %d\n", numints, sum);
+                    numints = i + 2;
                 }
             } /* end two bitwidths, high frequency exception case */ 
         }
@@ -223,15 +219,16 @@ int * make_combination(int mode, int spread, int excpfreq)
 
 void make_selector_table(int mode, int spread, int exceptionfreq)
 {
-        int i, j;
-        for (i = 1; i < mode; i++) {
+    int i, j;
+    int *combination;
+        for (i = 1; i <= mode; i++) {
             for (j = 1; j*i <= 24; j++) {
                 printf("%d ", i);
             }
             printf("\n");
         }
     
-        int *combination = make_combination(mode, spread, exceptionfreq);
+        combination = make_combination(mode, spread, exceptionfreq);
 
         /* these below lines can be done better, probably should specify each line
 28           manually when i > 4 */
@@ -241,44 +238,4 @@ void make_selector_table(int mode, int spread, int exceptionfreq)
         }
         printf("\n");
     }
-}
-
-int main(void)
-{
-    int i, j;
-    int length = 5;
-    
-    /* int *array = malloc(length * sizeof *array); */
-    /* /\* for (i = 0; i < length; i++) { *\/ */
-    /* /\*     array[i] = 3; *\/ */
-    /* /\* } *\/ */
-    /* array[0] = 3; */
-    /* array[1] = 5; */
-    /* array[2] = 5; */
-    /* array[3] = 7; */
-    /* array[4] = 7; */
-    //    array[4] = 7;
-    //printarray(length, array);
-    
-
-    //generate_permutations_iterative_noduplicates(length, array);
-
-    //printf("rosetta method:\n");
-    //generate_perms(array, length, output_perms);
-    //int ** table = make_selector_table(4, 2, 3);
-
-    //int *combination = make_selector_table(1, 1, 1);
-    //make_selector_table(1, 1, 1);
-
-    int mode = 4;
-    int spread = 2;
-    int exceptionfreq = 3;
-
-    make_selector_table(mode, spread, exceptionfreq);
-    
-    
-    
-
-
-    return 0;
 }

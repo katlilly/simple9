@@ -2,6 +2,10 @@
 CC = gcc
 CFLAGS = -ansi -pedantic -W -Wall -g
 
+
+notsimple9: permutations.c notsimple9.c
+	$(CC) $(CFLAGS) -o notsimple9 notsimple9.c permutations.c
+
 compress: compress.c
 	$(CC) $(CFLAGS) -c compress.c
 
@@ -23,4 +27,4 @@ compressionstats: compressionstats.c
 	$(CC) $(CFLAGS) -o compressionstats compressionstats.c 
 
 clean:
-	rm wsj-compress compress.o
+	rm wsj-compress compress.o notsimple9
