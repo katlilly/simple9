@@ -214,7 +214,7 @@ uint32_t decompress_excp(uint32_t *dest, uint32_t word, int offset)
     for (i = 0; i < combtable[selector].intstopack; i++) {
         bits = combtable[selector].bits[i];
         mask = pow(2, bits) - 1;
-        decoded[intsout + offset] = payload & mask;
+	decoded[intsout + offset] = payload & mask;
         intsout++;
         payload = payload >> bits;
     }

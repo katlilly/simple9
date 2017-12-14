@@ -4,7 +4,7 @@ CFLAGS = -ansi -pedantic -W -Wall -g
 
 
 notsimple9: permutations.c notsimple9.c
-	$(CC) $(CFLAGS) -o notsimple9 notsimple9.c permutations.c
+	$(CC) $(CFLAGS) -o notsimple9 notsimple9.c permutations.c -lm
 
 compress: compress.c
 	$(CC) $(CFLAGS) -c compress.c
