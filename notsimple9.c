@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <math.h>
 #include "permutations.h"
+#include "fls.h"
 
 #define NUMBER_OF_DOCS (1024 * 1024 * 1)
 #define MAX_BITWIDTH 32
@@ -53,16 +54,24 @@ selector table[] =
 
 uint32_t number_of_selectors = sizeof(table) / sizeof(*table);
 
+int selector_26[] = {2,3,2,2,2,2,2};
 
 combselector combtable[] =
     {
-        {24, NULL},
-        {23, NULL},
-        {23, NULL},
-        {23, NULL},
-        {23, NULL},
-        {12, NULL},
+        {26, selector_26 },
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+	{25, NULL},
+        {25, NULL},
+        {25, NULL},
+	{25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {13, NULL},
+        {8, NULL},
         {6, NULL},
+	{5, NULL},
         {4, NULL},
         {3, NULL},
         {2, NULL},
@@ -146,13 +155,13 @@ uint32_t encode_excp(uint32_t *destination, uint32_t *raw, uint32_t integers_to_
     uint32_t *start = integer;
     for (which = 0; which < number_of_combselectors; which++)
         {
-            column = 0; // go back to start of each row because of way some selectors may be ordered
-            integer = start; // and also go back to first int that needs compressing.
+	  column = 0; /* go back to start of each row because of way some selectors may be ordered */
+	  integer = start; /* and also go back to first int that needs compressing */
             topack = min(integers_to_compress, combtable[which].intstopack);
             end = raw + topack;
             for (; integer < end; integer++) {
                 if (fls(*integer) > combtable[which].bits[column]) {
-                    break; // increment 'which' if current integer can't fit in this many bits
+		  break; /* increment 'which' if current integer can't fit in this many bits */
                 }
                 column++;
             }
@@ -163,7 +172,7 @@ uint32_t encode_excp(uint32_t *destination, uint32_t *raw, uint32_t integers_to_
     
     /* pack one word */
     *destination = 0;
-    *destination = *destination | which; // put selector in (still using 4 bits for now)
+    *destination = *destination | which; /* put selector in (still using 4 bits for now) */
     int i = 0;
     int shiftdistance = 4;
     for (current = 0; current < topack; current++) {
@@ -171,7 +180,7 @@ uint32_t encode_excp(uint32_t *destination, uint32_t *raw, uint32_t integers_to_
         shiftdistance += combtable[which].bits[i];
         i++;
     }
-    return topack;    // return number of dgaps compressed into this word
+    return topack;   /* return number of dgaps compressed into this word */
 }
 
 
@@ -197,7 +206,7 @@ uint32_t decompress_excp(uint32_t *dest, uint32_t word, int offset)
 {
     int i, bits, intsout = 0;
     uint32_t selector, mask, payload;
-    selector = word & 0xf; // note still using 4 bit selector for now
+    selector = word & 0xf; /* note still using 4 bit selector for now */
     payload = word >> 4;
     for (i = 0; i < combtable[selector].intstopack; i++) {
         bits = combtable[selector].bits[i];
