@@ -86,7 +86,7 @@ selector table[] =
     {28, 1,  0xfffffff}
 };
 
-int number_of_selectors = sizeof(table) / sizeof(*table);
+uint32_t number_of_selectors = sizeof(table) / sizeof(*table);
 
 
 combselector combtable[] =
@@ -216,12 +216,12 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
 /* not-simple-9 compression function, using selector set with exceptions in them */
 uint32_t encode_excp(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compress)
 {
-    uint32_t which;                             // which element in selector array
+    uint32_t which;                             // which row in selector array
+    int column;                                 // which element in bitwidth array
     int current;                                // count of elements within each compressed word
-    int topack;                                 // min of intstopack and what's available to compress
+    int topack;                                 // min of ints/selector and remaining data to compress
     uint32_t *integer = raw;                    // the current integer to compress
     uint32_t *end = raw + integers_to_compress; // the end of the input array
-    int column;
     
     /* choose selector */
     uint32_t *start = integer;
@@ -231,9 +231,7 @@ uint32_t encode_excp(uint32_t *destination, uint32_t *raw, uint32_t integers_to_
         integer = start; // and also go back to first int that needs compressing.
         topack = min(integers_to_compress, combtable[which].intstopack);
         end = raw + topack;
-        //end = raw + min(integers_to_compress, table[which].intstopack);
         for (; integer < end; integer++) {
-            //printf("selector row: %d, column: %d, int: %d\n", which, column, *integer);
             if (fls(*integer) > combtable[which].bits[column]) {
                 break; // increment 'which' if current integer can't fit in this many bits
             }
@@ -243,23 +241,14 @@ uint32_t encode_excp(uint32_t *destination, uint32_t *raw, uint32_t integers_to_
             break;
         }
     }
-    //printf("chose selector %d, %d ints to pack\n", which, combtable[which].intstopack);
+    
     /* pack one word */
     *destination = 0;
-    uint32_t code;
     *destination = *destination | which; // put selector in (still using 4 bits for now)
     int i = 0;
     int shiftdistance = 4;
     for (current = 0; current < topack; current++) {
-        code = raw[current];
-        //printf("current code: ");
-        //print_binary(code);
-        uint32_t shiftedcode;
-        //shiftedcode = code << (4 + (current * combtable[which].bits[i]));
-        shiftedcode = code << shiftdistance;
-        //printf("code shifted: ");
-        *destination = *destination | shiftedcode;
-        //print_binary(shiftedcode);
+        *destination = *destination | raw[current] << shiftdistance;
         shiftdistance += combtable[which].bits[i];
         i++;
     }
@@ -287,19 +276,14 @@ uint32_t decompress(uint32_t *dest, uint32_t word, int offset)
 /* decompression with non-uniform selectors */
 uint32_t decompress_excp(uint32_t *dest, uint32_t word, int offset)
 {
-    //printf("new word\n");
     int i, bits, intsout = 0;
-    uint32_t selector, mask, payload, temp;
+    uint32_t selector, mask, payload;
     selector = word & 0xf; // note still using 4 bit selector for now
-    //mask = table[selector].masks;
     payload = word >> 4;
     for (i = 0; i < combtable[selector].intstopack; i++) {
         bits = combtable[selector].bits[i];
         mask = pow(2, bits) - 1;
-        temp = payload & mask;
-        //printf("selector: %d, mask: %x, int: %d\n", selector, mask, temp);
-
-        decoded[intsout + offset] = temp;
+        decoded[intsout + offset] = payload & mask;
         intsout++;
         payload = payload >> bits;
     }
