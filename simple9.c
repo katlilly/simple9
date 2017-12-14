@@ -3,6 +3,7 @@
 #include <strings.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 //#include "fls.h"
 
 
@@ -97,6 +98,8 @@ combselector combtable[] =
     {23, NULL},
     {12, NULL},
     {6, NULL},
+    {4, NULL},
+    {3, NULL},
     {2, NULL},
     {1, NULL}
 };
@@ -137,7 +140,7 @@ void print_combtable(combselector *ctable)
         for (j = 0; j < ctable[i].intstopack; j++) {
             printf("%d ", ctable[i].bits[j]);
         }
-        printf("\n");
+        printf("\n");
     }
 }
 
@@ -210,6 +213,59 @@ uint32_t encode(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compr
 }
 
 
+/* not-simple-9 compression function, using selector set with exceptions in them */
+uint32_t encode_excp(uint32_t *destination, uint32_t *raw, uint32_t integers_to_compress)
+{
+    uint32_t which;                             // which element in selector array
+    int current;                                // count of elements within each compressed word
+    int topack;                                 // min of intstopack and what's available to compress
+    uint32_t *integer = raw;                    // the current integer to compress
+    uint32_t *end = raw + integers_to_compress; // the end of the input array
+    int column;
+    
+    /* choose selector */
+    uint32_t *start = integer;
+    for (which = 0; which < number_of_combselectors; which++)
+    {
+        column = 0; // go back to start of each row because of way some selectors may be ordered
+        integer = start; // and also go back to first int that needs compressing.
+        topack = min(integers_to_compress, combtable[which].intstopack);
+        end = raw + topack;
+        //end = raw + min(integers_to_compress, table[which].intstopack);
+        for (; integer < end; integer++) {
+            //printf("selector row: %d, column: %d, int: %d\n", which, column, *integer);
+            if (fls(*integer) > combtable[which].bits[column]) {
+                break; // increment 'which' if current integer can't fit in this many bits
+            }
+            column++;
+        }
+        if (integer >= end) {
+            break;
+        }
+    }
+    //printf("chose selector %d, %d ints to pack\n", which, combtable[which].intstopack);
+    /* pack one word */
+    *destination = 0;
+    uint32_t code;
+    *destination = *destination | which; // put selector in (still using 4 bits for now)
+    int i = 0;
+    int shiftdistance = 4;
+    for (current = 0; current < topack; current++) {
+        code = raw[current];
+        //printf("current code: ");
+        //print_binary(code);
+        uint32_t shiftedcode;
+        //shiftedcode = code << (4 + (current * combtable[which].bits[i]));
+        shiftedcode = code << shiftdistance;
+        //printf("code shifted: ");
+        *destination = *destination | shiftedcode;
+        //print_binary(shiftedcode);
+        shiftdistance += combtable[which].bits[i];
+        i++;
+    }
+    return topack;    // return number of dgaps compressed into this word
+}
+
 /* used to use global variable <numints> to keep track of filling decompressed array
  now returns number of ints decompressed */
 uint32_t decompress(uint32_t *dest, uint32_t word, int offset)
@@ -227,6 +283,30 @@ uint32_t decompress(uint32_t *dest, uint32_t word, int offset)
     }
     return intsout;
 }
+
+/* decompression with non-uniform selectors */
+uint32_t decompress_excp(uint32_t *dest, uint32_t word, int offset)
+{
+    //printf("new word\n");
+    int i, bits, intsout = 0;
+    uint32_t selector, mask, payload, temp;
+    selector = word & 0xf; // note still using 4 bit selector for now
+    //mask = table[selector].masks;
+    payload = word >> 4;
+    for (i = 0; i < combtable[selector].intstopack; i++) {
+        bits = combtable[selector].bits[i];
+        mask = pow(2, bits) - 1;
+        temp = payload & mask;
+        //printf("selector: %d, mask: %x, int: %d\n", selector, mask, temp);
+
+        decoded[intsout + offset] = temp;
+        intsout++;
+        payload = payload >> bits;
+    }
+    return intsout;
+}
+
+
 
 uint32_t decompress_countwasted(uint32_t *dest, uint32_t word, int offset)
 {
@@ -541,10 +621,46 @@ int main(int argc, char *argv[])
         // *******************************************
         //using lists 96 and 445139 as examples
       
-        if (listnumber == 445139) {
+        //if (listnumber == 445139) {
+        if (listnumber == 95) {
             //printf("length of list %d is %d\n", listnumber, length);
             printf("%d\n", listnumber);
             printf("%d\n", length);
+            
+            /* manually setting some selector values to test out compression */
+            for (i = 0; i < number_of_combselectors; i++) {
+                combtable[i].bits = malloc(combtable[i].intstopack * sizeof *combtable[i].bits);
+                memset(combtable[i].bits, 0, combtable[i].intstopack * sizeof(*combtable[i].bits));
+            }
+            int j;
+            for (j = 0; j < 5; j++) {
+                for (i = 0; i < combtable[j].intstopack; i++) {
+                    combtable[j].bits[i] = 1;
+                }
+            }
+            combtable[1].bits[22] = 2;
+            combtable[2].bits[21] = 2;
+            combtable[3].bits[20] = 2;
+            combtable[4].bits[19] = 2;
+            
+            for (i = 0; i < combtable[5].intstopack; i++) {
+                combtable[5].bits[i] = 2;
+            }
+            for (i = 0; i < combtable[6].intstopack; i++) {
+                combtable[6].bits[i] = 4;
+            }
+            combtable[7].bits[0] = 4;
+            combtable[7].bits[1] = 5;
+            combtable[7].bits[2] = 8;
+            combtable[7].bits[3] = 8;
+            combtable[8].bits[0] = 8;
+            combtable[8].bits[1] = 8;
+            combtable[8].bits[2] = 6;
+            combtable[9].bits[0] = 12;
+            combtable[9].bits[1] = 12;
+            combtable[10].bits[0] = 24;
+            /* end manual setup of selector table for long list */
+            print_combtable(combtable);
             
             //print_list(postings_list, length);
             //print_list(dgaps, length);
@@ -570,7 +686,7 @@ int main(int argc, char *argv[])
             compressedwords = 0;      // offset for position in output array "compressed"
             compressedints = 0;       // offset for position in input array "dgaps"
             for (compressedints = 0; compressedints < length; compressedints += numencoded) {
-                numencoded = encode(compressed + compressedwords, dgaps + compressedints, length - compressedints);
+                numencoded = encode_excp(compressed + compressedwords, dgaps + compressedints, length - compressedints);
                 compressedwords++;
             }
             printf("compressed length of list %d: %d\n", listnumber, compressedwords);
@@ -578,18 +694,38 @@ int main(int argc, char *argv[])
             
             /* decompress a single list while counting selector use vs bitwidths */
             // *************************************
-            int offset = 0;  // reset number of decompressed ints to zero for each word
-            // don't look at last word because it likely isn't full
-            for (i = 0; i < compressedwords - 1; i++) {
-                offset += decompress_countwasted(decoded, compressed[i], offset);
-            }
+//            int offset = 0;  // reset number of decompressed ints to zero for each word
+//            // don't look at last word because it likely isn't full
+//            for (i = 0; i < compressedwords - 1; i++) {
+//                offset += decompress_countwasted(decoded, compressed[i], offset);
+//            }
+//
+//            int *list96bitdiffs = count_bitdiffs(dgaps, length);
+//            print_bitdiffs(list96bitdiffs);
             
-            int *list96bitdiffs = count_bitdiffs(dgaps, length);
-            print_bitdiffs(list96bitdiffs);
+            /* decompress single list using non-uniform selectors */
+            // **************************************************
+            int offset = 0;
+            for (i = 0; i < compressedwords; i++) {
+                //printf("decompressing %dth word\n", i);
+                offset += decompress_excp(decoded, compressed[i], offset);
+            }
             
             //int *list96bitdiffslist = list_bitdiffs(dgaps, length);
             
-            // measure variance of list of bitwidth differences from neighbours
+            /* find errors in compression or decompression */
+            // *******************************************
+            printf("original: decompressed:\n");
+            for (i = 0; i < length; i++) {
+                printf("%6d        %6d", dgaps[i], decoded[i]);
+                if (dgaps[i] != decoded[i]) {
+                    printf("     wrong");
+                }
+                printf("\n");
+            }
+            
+            
+            //print_list(decoded, length);
             
             
         }// end specified single list stuff
@@ -723,34 +859,13 @@ int main(int argc, char *argv[])
 //        printf("%d, %d\n", selectorfreqs[j].selector, selectorfreqs[j].frequency);
 //    }
 
-    /* manually setting some selector values to test out compression */
-    for (i = 0; i < number_of_combselectors; i++) {
-        combtable[i].bits = malloc(combtable[i].intstopack * sizeof *combtable[i].bits);
-        memset(combtable[i].bits, 0, combtable[i].intstopack * sizeof(*combtable[i].bits));
-    }
-    int j;
-    for (j = 0; j < 5; j++) {
-        for (i = 0; i < combtable[j].intstopack; i++) {
-            combtable[j].bits[i] = 1;
-        }
-    }
-    combtable[1].bits[22] = 2;
-    combtable[2].bits[21] = 2;
-    combtable[3].bits[20] = 2;
-    combtable[4].bits[19] = 2;
     
-    for (i = 0; i < combtable[5].intstopack; i++) {
-        combtable[5].bits[i] = 2;
-    }
-    for (i = 0; i < combtable[6].intstopack; i++) {
-        combtable[6].bits[i] = 4;
-    }
-    combtable[7].bits[0] = 12;
-    combtable[7].bits[1] = 12;
-    combtable[8].bits[0] = 24;
-    /* end manual setup of selector table for long list */
     
-    print_combtable(combtable);
+    //print_combtable(combtable);
+    
+    //encode_excp(compressed, dgaps, length);
+    //print_list(dgaps, length);
+    
     
     free(postings_list);
     free(dgaps);
