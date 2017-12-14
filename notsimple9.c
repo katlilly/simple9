@@ -13,7 +13,10 @@
 #include <stdint.h>
 #include <math.h>
 #include "permutations.h"
+
+#ifndef __APPLE__
 #include "fls.h"
+#endif
 
 #define NUMBER_OF_DOCS (1024 * 1024 * 1)
 #define MAX_BITWIDTH 32
@@ -237,6 +240,7 @@ int main(void)
     uint32_t compressedwords;
     uint32_t compressedints;
 
+    printf("hello\n");
     
 
 
