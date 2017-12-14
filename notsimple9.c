@@ -24,6 +24,7 @@
 #define NUMBER_OF_LISTS 499693
 
 
+
 /* data structure for each line in the selector table */
 typedef struct
 {
@@ -41,6 +42,52 @@ typedef struct
 } combselector;
 
 
+
+
+/* int selector_26[] = {2,3,2,2,2,2,2}; */
+
+combselector combtable[] =
+    {
+        {26, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {25, NULL},
+        {13, NULL},
+        {8, NULL},
+        {6, NULL},
+        {5, NULL},
+        {4, NULL},
+        {3, NULL},
+        {2, NULL},
+        {1, NULL}
+    };
+
+int number_of_combselectors = 34;
+
 /* the selectors for simple-9 */
 selector table[] =
     {
@@ -57,31 +104,8 @@ selector table[] =
 
 uint32_t number_of_selectors = sizeof(table) / sizeof(*table);
 
-int selector_26[] = {2,3,2,2,2,2,2};
 
-combselector combtable[] =
-    {
-        {26, selector_26 },
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-	{25, NULL},
-        {25, NULL},
-        {25, NULL},
-	{25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {13, NULL},
-        {8, NULL},
-        {6, NULL},
-	{5, NULL},
-        {4, NULL},
-        {3, NULL},
-        {2, NULL},
-        {1, NULL}
-    };
 
-int number_of_combselectors = sizeof(combtable) / sizeof(*combtable);
 
 uint32_t *postings_list = NULL;
 uint32_t *dgaps = NULL;
@@ -235,14 +259,26 @@ int main(void)
     /* make_selector_table(mode, spread, exceptionfreq); */
     /* printf("number of permutations: %d\n", numperms); */
 
-    int listnumber = 0;
-    uint32_t i, prev, length;
+    int listnumber, payload_bits, excp_perms, uniform_selectors, num_selectors;
+    uint32_t i, prev, length, bitwidth;
     uint32_t compressedwords;
     uint32_t compressedints;
 
-    printf("hello\n");
-    
+    listnumber = 0;
+    payload_bits = 26;
+    excp_perms = 25;
+    uniform_selectors = 9;
+    num_selectors = excp_perms + uniform_selectors;
 
+        
+    for (i = 0; i < num_selectors; i++) {
+        combtable[i].bits = malloc(combtable[i].intstopack * sizeof combtable[i].bits[0]);
+        bitwidth = 26 / combtable[i].intstopack;
+        printf("i: %d, bitwidth: %d\n", i, bitwidth);
+        memset(combtable[i].bits, bitwidth, combtable[i].intstopack * sizeof (combtable[i].bits[0]));
+    }
+
+    print_combtable(combtable);
 
     return 0;
 }
