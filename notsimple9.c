@@ -50,43 +50,46 @@ uint32_t *decoded = NULL;
 
 /* int selector_26[] = {2,3,2,2,2,2,2}; */
 
+/* this is the table for very long lists with mode = 1
+   note: 9 plus number of permuations is 34, so i've deleted
+   three of the long-bitwidth selectors and added one
+   extra permutation so that it fits in to 5 bits */
 combselector combtable[] =
     {
+        {27, NULL},
         {26, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
-        {25, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
+        {26, NULL},
         {13, NULL},
         {8, NULL},
-        {6, NULL},
         {5, NULL},
-        {4, NULL},
-        {3, NULL},
         {2, NULL},
         {1, NULL}
     };
+
 
 int number_of_combselectors = sizeof(combtable) / sizeof(*combtable);
 
@@ -106,13 +109,6 @@ selector table[] =
 
 uint32_t number_of_selectors = sizeof(table) / sizeof(*table);
 
-
-
-
-/* uint32_t *postings_list = NULL; */
-/* uint32_t *dgaps = NULL; */
-/* uint32_t *compressed = NULL; */
-/* uint32_t *decoded = NULL; */
 
 
 void print_combtable(combselector *ctable)
@@ -203,7 +199,7 @@ uint32_t encode_excp(uint32_t *destination, uint32_t *raw, uint32_t integers_to_
     *destination = 0;
     *destination = *destination | which; /* put selector in (still using 4 bits for now) */
     int i = 0;
-    int shiftdistance = 6; /* 6 bit selector */
+    int shiftdistance = 5; /* 5 bit selector */
     for (current = 0; current < topack; current++) {
         *destination = *destination | raw[current] << shiftdistance;
         shiftdistance += combtable[which].bits[i];
@@ -235,8 +231,8 @@ uint32_t decompress_excp(uint32_t *dest, uint32_t word, int offset)
 {
     int i, bits, intsout = 0;
     uint32_t selector, mask, payload;
-    selector = word & 63; /* note still using 4 bit selector for now */
-    payload = word >> 6;
+    selector = word & 31; /*** 5 bit selector ***/
+    payload = word >> 5; /*** 5 bit selector ***/
     for (i = 0; i < combtable[selector].intstopack; i++) {
         bits = combtable[selector].bits[i];
         mask = pow(2, bits) - 1;
@@ -269,42 +265,41 @@ int main(int argc, char *argv[])
         exit(printf("Cannot open %s\n", filename));
     }
 
-
-
     postings_list = malloc(NUMBER_OF_DOCS * sizeof *postings_list);
     dgaps = malloc(NUMBER_OF_DOCS * sizeof *dgaps);
     compressed = malloc(NUMBER_OF_DOCS * sizeof *compressed);
     decoded = malloc(NUMBER_OF_DOCS * sizeof *decoded);
     
-    
     listnumber = 0;
-    payload_bits = 26;
-    excp_perms = 25;
+    payload_bits = 27;
+    excp_perms = 26;
     uniform_selectors = 9;
     num_selectors = excp_perms + uniform_selectors;
 
-    if (num_selectors != number_of_combselectors) {
-        printf("num selectors: %d, wrong\n", number_of_combselectors);
-        exit(1);
-    }
+    /* check that i haven't done something silly */
+    /* if (num_selectors != number_of_combselectors) { */
+    /*     printf("num selectors: %d, wrong\n", number_of_combselectors); */
+    /*     exit(1); */
+    /* } */
 
     /* set bitwidth arrays for uniform selectors */
     for (i = 0; i < number_of_combselectors; i++) {
         combtable[i].bits = malloc(combtable[i].intstopack * sizeof(combtable[i].bits[0]));
         for (int j = 0; j < combtable[i].intstopack; j++) {
-            combtable[i].bits[j] = 26 / combtable[i].intstopack;
+            combtable[i].bits[j] = 27 / combtable[i].intstopack;
         }
     }
 
-    /* set the exceptions, in this case they are in rows 1 to 25 */
-    for (i = 1; i < 26; i++) {
-        combtable[i].bits[25-i] = 2;
+    /* set the exceptions, in this case they are in rows 1 to 26 */
+    for (i = 1; i < 27; i++) {
+        combtable[i].bits[26-i] = 2;
     }
- 
+
+    /* check that the selector table looks how it should */
     print_combtable(combtable);
 
     
-    
+    /* read in postings lists */
     while (fread(&length, sizeof(length), 1, fp)  == 1) {
         
         /* Read one postings list (and make sure we did so successfully) */
@@ -321,9 +316,10 @@ int main(int argc, char *argv[])
         }
 
         if (listnumber == 445139) {
+        //if (listnumber == 96) {
             //printf("length of list %d is %d\n", listnumber, length);
             printf("listnumber: %d\n", listnumber);
-            printf("uncompressed length:%d\n", length);
+            printf("number of items in list: %d\n", length);
 
 
             /* compress 1 list with non-uniform selectors */
@@ -334,7 +330,7 @@ int main(int argc, char *argv[])
                 numencoded = encode_excp(compressed + compressedwords, dgaps + compressedints, length - compressedints);
                 compressedwords++;
             }
-            printf("my compressed length of list %d: %d\n", listnumber, compressedwords);
+            printf("my 27 bit compressed length of list %d: %d bytes \n", listnumber, compressedwords * 4);
 
 
             
@@ -355,7 +351,7 @@ int main(int argc, char *argv[])
                 numencoded = encode(compressed + compressedwords, dgaps + compressedints, length - compressedints);
                 compressedwords++;
             }
-            printf("simple9 compressed length of list %d: %d\n", listnumber, compressedwords);
+            printf("simple9 compressed length of list %d: %d bytes\n", listnumber, compressedwords * 4);
 
 
             /* find errors in compression or decompression */
