@@ -74,8 +74,6 @@ combselector combtable[] =
         {25, NULL},
         {25, NULL},
         {25, NULL},
-        {25, NULL},
-        {25, NULL},
         {13, NULL},
         {8, NULL},
         {6, NULL},
@@ -86,7 +84,7 @@ combselector combtable[] =
         {1, NULL}
     };
 
-int number_of_combselectors = 34;
+int number_of_combselectors = sizeof(combtable) / sizeof(*combtable);
 
 /* the selectors for simple-9 */
 selector table[] =
@@ -270,13 +268,28 @@ int main(void)
     uniform_selectors = 9;
     num_selectors = excp_perms + uniform_selectors;
 
-        
-    for (i = 0; i < num_selectors; i++) {
-        combtable[i].bits = malloc(combtable[i].intstopack * sizeof combtable[i].bits[0]);
-        bitwidth = 26 / combtable[i].intstopack;
-        printf("i: %d, bitwidth: %d\n", i, bitwidth);
-        memset(combtable[i].bits, bitwidth, combtable[i].intstopack * sizeof (combtable[i].bits[0]));
+    printf("num selectors: %d\n", number_of_combselectors);
+
+    /* set bitwidth arrays for uniform selectors */
+    for (i = 0; i < number_of_combselectors; i++) {
+        combtable[i].bits = malloc(combtable[i].intstopack * sizeof(combtable[i].bits[0]));
+        for (int j = 0; j < combtable[i].intstopack; j++) {
+            combtable[i].bits[j] = 26 / combtable[i].intstopack;
+        }
     }
+
+    /* set the exceptions, in this case they are in rows 1 to 25 */
+    for (i = 1; i < 26; i++) {
+        combtable[i].bits[25-i] = 2;
+    }
+
+    
+    /* for (i = 0; i < num_selectors; i++) { */
+    /*     combtable[i].bits = malloc(combtable[i].intstopack * sizeof combtable[i].bits[0]); */
+    /*     bitwidth = 26 / combtable[i].intstopack; */
+    /*     printf("i: %d, bitwidth: %d\n", i, bitwidth); */
+    /*     memset(combtable[i].bits, bitwidth, combtable[i].intstopack * sizeof (combtable[i].bits[0])); */
+    /* } */
 
     print_combtable(combtable);
 
