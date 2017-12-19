@@ -42,6 +42,10 @@ typedef struct
 } combselector;
 
 
+uint32_t *postings_list = NULL;
+uint32_t *dgaps = NULL;
+uint32_t *compressed = NULL;
+uint32_t *decoded = NULL;
 
 
 /* int selector_26[] = {2,3,2,2,2,2,2}; */
@@ -105,10 +109,10 @@ uint32_t number_of_selectors = sizeof(table) / sizeof(*table);
 
 
 
-uint32_t *postings_list = NULL;
-uint32_t *dgaps = NULL;
-uint32_t *compressed = NULL;
-uint32_t *decoded = NULL;
+/* uint32_t *postings_list = NULL; */
+/* uint32_t *dgaps = NULL; */
+/* uint32_t *compressed = NULL; */
+/* uint32_t *decoded = NULL; */
 
 
 void print_combtable(combselector *ctable)
@@ -199,7 +203,7 @@ uint32_t encode_excp(uint32_t *destination, uint32_t *raw, uint32_t integers_to_
     *destination = 0;
     *destination = *destination | which; /* put selector in (still using 4 bits for now) */
     int i = 0;
-    int shiftdistance = 4;
+    int shiftdistance = 6; /* 6 bit selector */
     for (current = 0; current < topack; current++) {
         *destination = *destination | raw[current] << shiftdistance;
         shiftdistance += combtable[which].bits[i];
@@ -231,8 +235,8 @@ uint32_t decompress_excp(uint32_t *dest, uint32_t word, int offset)
 {
     int i, bits, intsout = 0;
     uint32_t selector, mask, payload;
-    selector = word & 0xf; /* note still using 4 bit selector for now */
-    payload = word >> 4;
+    selector = word & 63; /* note still using 4 bit selector for now */
+    payload = word >> 6;
     for (i = 0; i < combtable[selector].intstopack; i++) {
         bits = combtable[selector].bits[i];
         mask = pow(2, bits) - 1;
@@ -246,29 +250,43 @@ uint32_t decompress_excp(uint32_t *dest, uint32_t word, int offset)
 
 
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    /* print bespoke selector table for a list given statistical description of data */
-    /* ************************************ */
-    /* int numperms = 0; */
-    /* int mode = 1; */
-    /* int spread = 1; */
-    /* int exceptionfreq = 1; */
-    /* make_selector_table(mode, spread, exceptionfreq); */
-    /* printf("number of permutations: %d\n", numperms); */
-
     int listnumber, payload_bits, excp_perms, uniform_selectors, num_selectors;
     uint32_t i, prev, length, bitwidth;
     uint32_t compressedwords;
     uint32_t compressedints;
 
+    const char *filename;
+    if (argc == 2) {
+        filename = argv[1];
+    } else {
+        exit(printf("Usage::%s <binfile>\n", argv[0]));
+    }
+
+    FILE *fp;
+    if ((fp = fopen(filename, "rb")) == NULL) {
+        exit(printf("Cannot open %s\n", filename));
+    }
+
+
+
+    postings_list = malloc(NUMBER_OF_DOCS * sizeof *postings_list);
+    dgaps = malloc(NUMBER_OF_DOCS * sizeof *dgaps);
+    compressed = malloc(NUMBER_OF_DOCS * sizeof *compressed);
+    decoded = malloc(NUMBER_OF_DOCS * sizeof *decoded);
+    
+    
     listnumber = 0;
     payload_bits = 26;
     excp_perms = 25;
     uniform_selectors = 9;
     num_selectors = excp_perms + uniform_selectors;
 
-    printf("num selectors: %d\n", number_of_combselectors);
+    if (num_selectors != number_of_combselectors) {
+        printf("num selectors: %d, wrong\n", number_of_combselectors);
+        exit(1);
+    }
 
     /* set bitwidth arrays for uniform selectors */
     for (i = 0; i < number_of_combselectors; i++) {
@@ -282,16 +300,83 @@ int main(void)
     for (i = 1; i < 26; i++) {
         combtable[i].bits[25-i] = 2;
     }
-
-    
-    /* for (i = 0; i < num_selectors; i++) { */
-    /*     combtable[i].bits = malloc(combtable[i].intstopack * sizeof combtable[i].bits[0]); */
-    /*     bitwidth = 26 / combtable[i].intstopack; */
-    /*     printf("i: %d, bitwidth: %d\n", i, bitwidth); */
-    /*     memset(combtable[i].bits, bitwidth, combtable[i].intstopack * sizeof (combtable[i].bits[0])); */
-    /* } */
-
+ 
     print_combtable(combtable);
 
+    
+    
+    while (fread(&length, sizeof(length), 1, fp)  == 1) {
+        
+        /* Read one postings list (and make sure we did so successfully) */
+        if (fread(postings_list, sizeof(*postings_list), length, fp) != length) {
+            exit(printf("i/o error\n"));
+        }
+        listnumber++;
+
+        /* convert postings list to dgaps list */
+        prev = 0;
+        for (i = 0; i < length; i++) {
+            dgaps[i] = postings_list[i] - prev;
+            prev = postings_list[i];
+        }
+
+        if (listnumber == 445139) {
+            //printf("length of list %d is %d\n", listnumber, length);
+            printf("listnumber: %d\n", listnumber);
+            printf("uncompressed length:%d\n", length);
+
+
+            /* compress 1 list with non-uniform selectors */
+            uint32_t numencoded = 0;  // return value of encode function, the number of ints compressed
+            compressedwords = 0;      // offset for position in output array "compressed"
+            compressedints = 0;       // offset for position in input array "dgaps"
+            for (compressedints = 0; compressedints < length; compressedints += numencoded) {
+                numencoded = encode_excp(compressed + compressedwords, dgaps + compressedints, length - compressedints);
+                compressedwords++;
+            }
+            printf("my compressed length of list %d: %d\n", listnumber, compressedwords);
+
+
+            
+            /* decompress single list using non-uniform selectors */
+            // **************************************************
+            int offset = 0;
+            for (i = 0; i < compressedwords; i++) {
+                //printf("decompressing %dth word\n", i);
+                offset += decompress_excp(decoded, compressed[i], offset);
+            }
+
+            
+            /* compress 1 list with simple9 */
+            numencoded = 0;  // return value of encode function, the number of ints compressed
+            compressedwords = 0;      // offset for position in output array "compressed"
+            compressedints = 0;       // offset for position in input array "dgaps"
+            for (compressedints = 0; compressedints < length; compressedints += numencoded) {
+                numencoded = encode(compressed + compressedwords, dgaps + compressedints, length - compressedints);
+                compressedwords++;
+            }
+            printf("simple9 compressed length of list %d: %d\n", listnumber, compressedwords);
+
+
+            /* find errors in compression or decompression */
+            // *******************************************
+            /* printf("original: decompressed:\n"); */
+            /* for (i = 0; i < length; i++) { */
+            /*     printf("%6d        %6d", dgaps[i], decoded[i]); */
+            /*     if (dgaps[i] != decoded[i]) { */
+            /*         printf("     wrong"); */
+            /*     } */
+            /*     printf("\n"); */
+            /* } */
+            
+        } /* end single list stuff */
+    
+    }/* end read-in of postings lists */
+
+    free(postings_list);
+    free(dgaps);
+    free(compressed);
+    free(decoded);
+    
     return 0;
 }

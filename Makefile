@@ -6,6 +6,11 @@ CFLAGS = -ansi -pedantic -W -Wall -g
 notsimple9: permutations.c notsimple9.c
 	$(CC) $(CFLAGS) -o notsimple9 notsimple9.c permutations.c -lm
 
+
+compare-notsimple9: notsimple9 postings.bin
+	./notsimple9 postings.bin
+
+
 compress: compress.c
 	$(CC) $(CFLAGS) -c compress.c
 

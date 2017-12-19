@@ -647,7 +647,7 @@ int main(int argc, char *argv[])
             print_combtable(combtable);
             
             //print_list(postings_list, length);
-            //print_list(dgaps, length);
+            //print_list(dgaps, length);
             
           
             /* get bit width data for a single list */
@@ -695,7 +695,7 @@ int main(int argc, char *argv[])
                 offset += decompress_excp(decoded, compressed[i], offset);
             }
             
-            //int *list96bitdiffslist = list_bitdiffs(dgaps, length);
+            //int *list96bitdiffslist = list_bitdiffs(dgaps, length);
             
             /* find errors in compression or decompression */
             // *******************************************
