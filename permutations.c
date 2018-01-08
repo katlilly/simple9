@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 int numperms;
+
 
 int compare_ints(const void *a, const void *b) {
     const int *ia = (const int *) a;
@@ -20,8 +22,7 @@ void output_perms(int *array, int length)
 }
  
 
-/* next lexicographical permutation
-   taken from rosettacode */
+/* next lexicographical permutation. taken from rosettacode */
 int next_lex_perm(int *a, int n) {
 #define swap(i, j) {t = a[i]; a[i] = a[j]; a[j] = t;}
     int k, l, t;
@@ -46,7 +47,8 @@ int next_lex_perm(int *a, int n) {
     return 1;
 #undef swap
 }
- 
+
+
 /* generates permutations in correct order and outputs unique ones
    taken from rosettacode */
 void generate_perms(int *x, int n, void callback(int *, int))
@@ -59,7 +61,7 @@ void generate_perms(int *x, int n, void callback(int *, int))
  
 
 
-/* this removes some duplicate permutations but not all
+/* this removes some duplicate permutations but not all.
  checking if each pair is not the same before swapping is not
  adequate because of the way this algorithm traverses the changes
  also this way does not output permutations in the order i want */ 
