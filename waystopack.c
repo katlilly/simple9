@@ -2,7 +2,9 @@
 #include <stdint.h>
 #include <strings.h>
 
-
+/* function to calculate n choose k
+   usage: n = payloadbits minus 1
+          k = ints to pay minus 1 */
 long long choose(n, k)
 {
     if (k == 0) return 1;
@@ -10,12 +12,11 @@ long long choose(n, k)
 }
     
 
-
-
+/* calculate number of possible ways to pack k ints into n bits */
 int main(void)
 {
     int i;
-    long long ways; /* every permutation */
+    long long ways; 
     int payloadbits = 32;
     
     for (i = 1; i <= payloadbits; i++) {
