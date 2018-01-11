@@ -64,31 +64,34 @@ void generate_perms(int *x, int n, void callback(int *, int))
 
 
 
+/* make changes to this function so that:
+   1. it uses only the high exception when mode = 1
+   2. it limits exception frequency when appropriate
+   3. it deals with modes higher than 5 better */
 
-
-void make_restricted_combination(int mode, int stdev)
+void make_restricted_combination(int mode, int stdev, int excepfreq)
 {
     int i, j, k, l, sum, numints, high, low;
 
     high = mode + stdev;
     low = mode - stdev;
-    
+
+    /* remove low exception when it doesn't make sense */
     if (mode - stdev <= 0) {
-        printf("invalid bitwidths\n");
-        return;
-        
+        low = mode;
     }
 
-    /* this calculates all the combinations, doesn't count the permutations */
-    for (i = 1; i < 32; i++) {
+    for (i = 1; i <= excepfreq; i++) {
         for (j = 1; j < 32; j++) {
-            for (k = 1; k < 32; k++) {
+            for (k = 1; k <= excepfreq; k++) {
                 sum = i * low + j * mode + k * high;
                 /* if sum = 32 we've found a valid combination */
                 if (sum == 32) {
                     numints = i + j + k;
+                    
                     /* print the valid combination */
                     //printf("%2d %2d %2d\t%d\n", i, j, k, numints);
+                    
                     /* fill an array with the given combination*/
                     int *comb = malloc(sizeof(comb[0]) * numints);
                     for (l = 0; l < i; l++) {
@@ -101,10 +104,12 @@ void make_restricted_combination(int mode, int stdev)
                         comb[l] = high;
                     }
                     for (l = 0; l < numints; l++) {
-                        //  printf("%d ", comb[l]);
+                        //      printf("%d ", comb[l]);
                     }
                     //printf("\n");
+                    
                     /* send this combination to generate perms function */
+                    /* may want to silence the printing in the output_perms function */
                     generate_perms(comb, numints, output_perms);
                 }
             }
@@ -117,7 +122,7 @@ void make_restricted_combination(int mode, int stdev)
 
 int main(void)
 {
-    int i;
+    int mode, stdev, excepfreq;
     long long ways; 
     int payloadbits = 6;
 
@@ -126,10 +131,16 @@ int main(void)
     /* printf("1 bit ints, 3 bit ints, 5 bit ints, ints packed\n"); */
     /* make_restricted_combination(3, 2); */
 
-    for (i = 1; i < 10; i++) {
-        numperms = 0;
-        make_restricted_combination(i, 1);
-        printf("number of permutations with mode = %d: %d\n", i, numperms);
+    /* this puts no limitations on exception frequency, so way to many
+       selectors when modal bitwidth is small */
+    for (mode = 1; mode < 10; mode++) {
+        for (stdev = 1; stdev < 4; stdev++) {
+            for (excepfreq = 1; excepfreq < 5; excepfreq++) {
+                numperms = 0;
+                make_restricted_combination(mode, stdev, excepfreq); /* i = mode, j = stdev */
+                printf("number of permutations with mode = %d, stdev = %d, excepfreq = %d: %d\n", mode, stdev, excepfreq, numperms);
+            }
+        }
     }
 
     /* make_restricted_combination(5, 1); */
