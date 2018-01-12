@@ -137,7 +137,7 @@ int main(void)
         for (stdev = 1; stdev < 4; stdev++) {
             for (excepfreq = 1; excepfreq < 5; excepfreq++) {
                 numperms = 0;
-                make_restricted_combination(mode, stdev, excepfreq); /* i = mode, j = stdev */
+                make_restricted_combination(mode, stdev, excepfreq); 
                 printf("number of permutations with mode = %d, stdev = %d, excepfreq = %d: %d\n", mode, stdev, excepfreq, numperms);
             }
         }
