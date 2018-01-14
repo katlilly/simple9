@@ -7,6 +7,114 @@
 
 static uint32_t *postings_list;
 
+typedef struct {
+    int listNumber;
+    int listLength;
+    int mode;
+    int lowexception;
+    int highexception;
+    double modalFraction;
+    double lowFraction;
+    double highFraction;
+} listStats;
+
+
+/* calculate statistics of a list for use in selector generator
+   returns a listStats structure */
+listStats getStats(int number, int length)
+{
+    listStats tempList;
+    tempList.listNumber = number;
+    tempList.listLength = length;
+
+    int i;
+    int *bitwidths = malloc(32 * sizeof(bitwidths[0]));
+    for (i = 0; i < 32; i++) {
+        bitwidths[i] = 0;
+    }
+            
+    int *dgaps = malloc(length * sizeof(dgaps[0]));
+    int prev = 0;
+
+    for (i = 0; i < length; i++) {
+        dgaps[i] = postings_list[i] - prev;
+        prev = postings_list[i];
+        bitwidths[fls(dgaps[i])]++;
+    }
+    printf("\n");
+
+    int sum = 0;
+    double fraction = 0;
+    int max = 0;
+    int mode;
+    int nintyfifth;
+    int set95th = 0;
+    int highoutliers = 0, lowoutliers = 0;
+
+    /* find mode and 95th percentile */
+    printf("bitwidth: \tnum ints: \tcumulative fraction:\n");
+    for (i = 0; i < 10; i++) {
+        sum += bitwidths[i];
+        fraction = (double) sum / length;
+        printf("%d \t\t%d \t\t%.2f\n", i, bitwidths[i], fraction);
+        if (bitwidths[i] > max) {
+            max = bitwidths[i];
+            mode = i;
+        }
+        if (set95th == 0 && fraction >= 0.95) {
+            set95th = 1;
+            nintyfifth = i;
+        }
+    }
+
+    /* find exception frequencies */            
+    for (i = 0; i < mode; i++) {
+        lowoutliers += bitwidths[i];
+    }
+    for (i = mode + 1; i < 32; i++) {
+        highoutliers += bitwidths[i];
+    }
+
+    /* find next most frequent bitwidth smaller than the mode */
+    max = 0;
+    int lowexception;
+    for (i = 0; i < mode; i++) {
+        if (bitwidths[i] > max) {
+            max = bitwidths[i];
+            lowexception = i;
+        } 
+    }
+
+    //double highoutlierfraction = (double) highoutliers / length;
+    //double lowoutlierfraction = (double) lowoutliers / length;
+    //double modalfraction = (double) bitwidths[mode] / length;
+    //printf("%d of %d ints (%.2f) are larger than the mode\n", highoutliers, length, highoutlierfraction);
+    //printf("%d of %d ints (%.2f) are smaller than the mode\n", lowoutliers, length, lowoutlierfraction);
+
+    printf("====================================\nvalues chosen to make selectors with:\n");
+
+    //printf("low exception: %d, fraction: %.2f\n", lowexception, lowoutlierfraction);
+    //printf("mode: %d, fraction: %.2f\n", mode, modalfraction);
+    //printf("high exception: %d, fraction: %.2f\n", nintyfifth, highoutlierfraction);
+
+            
+    //printf("low exception: %d, mode: %d, high exception: %d\n", lowexception, mode, nintyfifth);
+
+                        
+    //printf("sum of mode and outliers: %d\n", bitwidths[mode] + highoutliers + lowoutliers);
+
+    tempList.mode = mode;
+    tempList.lowexception = lowexception;
+    tempList.highexception = nintyfifth;
+    tempList.modalFraction = (double) bitwidths[mode] / length;
+    tempList.lowFraction = (double) lowoutliers / length;
+    tempList.highFraction = (double) highoutliers / length;
+    
+    return tempList;
+    
+}
+
+
 
 int main(int argc, char *argv[])
 {
@@ -38,111 +146,16 @@ int main(int argc, char *argv[])
         }
         //printf("%u: ", (unsigned)length);
         listnumber++;
-                  
+
+        
         if (listnumber == 96) {
             printf("list number: %d, length: %d\n", listnumber, (unsigned)length);
-
-            int *bitwidths = malloc(32 * sizeof(bitwidths[0]));
-            for (i = 0; i < 32; i++) {
-                bitwidths[i] = 0;
-            }
+            printf("getting list statistics\n");
             
-            int *dgaps = malloc(length * sizeof(dgaps[0]));
-            int prev = 0;
+            listStats statistics = getStats(listnumber, length);
 
-            for (i = 0; i < length; i++) {
-                dgaps[i] = postings_list[i] - prev;
-                prev = postings_list[i];
-                bitwidths[fls(dgaps[i])]++;
-                //printf("%d, ", dgaps[i]);
-            }
-            printf("\n");
-
-            double sum = 0;
-            double percent = 0;
-            int max = 0;
-            double mode;
-            int fifth, nintyfifth;
-            int set5th = 0, set95th = 0;
-            //int tenth, nintieth;
-            //int set10th = 0, set90th = 0;
-            double highoutliers = 0, lowoutliers = 0;
-
-            printf("bitwidth: \tfrequency: \tcumulative:\n");
-            for (i = 0; i < 10; i++) {
-                sum += bitwidths[i];
-                percent = sum / length;
-                printf("%d \t\t%d \t\t%f\n", i, bitwidths[i], percent);
-                /* find mode */
-                if (bitwidths[i] > max) {
-                    max = bitwidths[i];
-                    mode = i;
-                }
-                /* find 5th percentile */
-                if (set5th == 0 && percent >= 0.05) {
-                    set5th = 1;
-                    fifth = i;
-                }
-                /* find 95th percentile */
-                if (set95th == 0 && percent >= 0.95) {
-                    set95th = 1;
-                    nintyfifth = i;
-                }
-                /* /\* find 10th percentile *\/ */
-                /* if (set10th == 0 && percent >= 0.1) { */
-                /*     set10th = 1; */
-                /*     tenth = i; */
-                /* } */
-                /* /\* find 90th percentile *\/ */
-                /* if (set90th == 0 && percent >= 0.9) { */
-                /*     set90th = 1; */
-                /*     nintieth = i; */
-                /* } */
-            }
-
-            printf("sum: %f\n", sum);
-
-            
-           
-            printf("mode: %f\n", mode);
-            printf("5th percentile: %d\n", fifth);
-            printf("95th percentil: %d\n", nintyfifth);
-            //printf("10th percentile: %d\n", tenth);
-            //printf("90th percentil: %d\n", nintieth);
-
-            
-            for (i = 0; i < mode; i++) {
-                lowoutliers += bitwidths[i];
-            }
-            for (i = mode + 1; i < 32; i++) {
-                highoutliers += bitwidths[i];
-            }
-
-
-            /* 5th percentile is not the right number to chose for the low exception
-               how about next-most-common lower than mode? */
-            max = 0;
-            int lowexception;
-            for (i = 0; i < mode; i++) {
-                if (bitwidths[i] > max) {
-                    max = bitwidths[i];
-                    lowexception = i;
-                } 
-            }
-
-            double highoutlierfraction = highoutliers / length;
-            double lowoutlierfraction = lowoutliers / length;
-            double modalfraction = bitwidths[mode] / length;
-            printf("%.0f of %d ints (%f) are larger than the mode\n", highoutliers, length, highoutlierfraction);
-            printf("%.0f of %d ints (%f) are smaller than the mode\n", lowoutliers, length, lowoutlierfraction);
-
-            printf("values chosen for to make selectors with:\n");
-            printf("low exception: %d, mode: %f, high exception: %d\n", lowexception, mode, nintyfifth);
-
-            printf("%f \n", modalfraction);
-            
-            //printf("sum of mode and outliers: %d\n", bitwidths[mode] + highoutliers + lowoutliers);
-            
+            printf("mode for list %d is %d\n", statistics.listNumber, statistics.mode);
+            printf("high exception and fraction: %d, %.2f\n", statistics.highexception, statistics.highFraction);
         }/* end single list stats stuff */
         
       
