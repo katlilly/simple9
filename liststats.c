@@ -85,24 +85,6 @@ listStats getStats(int number, int length)
         } 
     }
 
-    //double highoutlierfraction = (double) highoutliers / length;
-    //double lowoutlierfraction = (double) lowoutliers / length;
-    //double modalfraction = (double) bitwidths[mode] / length;
-    //printf("%d of %d ints (%.2f) are larger than the mode\n", highoutliers, length, highoutlierfraction);
-    //printf("%d of %d ints (%.2f) are smaller than the mode\n", lowoutliers, length, lowoutlierfraction);
-
-    printf("====================================\nvalues chosen to make selectors with:\n");
-
-    //printf("low exception: %d, fraction: %.2f\n", lowexception, lowoutlierfraction);
-    //printf("mode: %d, fraction: %.2f\n", mode, modalfraction);
-    //printf("high exception: %d, fraction: %.2f\n", nintyfifth, highoutlierfraction);
-
-            
-    //printf("low exception: %d, mode: %d, high exception: %d\n", lowexception, mode, nintyfifth);
-
-                        
-    //printf("sum of mode and outliers: %d\n", bitwidths[mode] + highoutliers + lowoutliers);
-
     tempList.mode = mode;
     tempList.lowexception = lowexception;
     tempList.highexception = nintyfifth;
@@ -154,8 +136,7 @@ int main(int argc, char *argv[])
             
             listStats statistics = getStats(listnumber, length);
 
-            printf("mode for list %d is %d\n", statistics.listNumber, statistics.mode);
-            printf("high exception and fraction: %d, %.2f\n", statistics.highexception, statistics.highFraction);
+            
         }/* end single list stats stuff */
         
       
