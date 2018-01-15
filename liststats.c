@@ -170,7 +170,7 @@ int make_combs_withoutlow(int mode, double modFrac, int high, double highFrac)
     }
     int checksum = 0;
     for (i = 0; i < numInts; i++) {
-        //printf("i: %d, bitwidth: %d, ", i, combination[i]);
+        printf("%d, ", combination[i]);
         checksum += combination[i];
     }
     //printf("\n");
@@ -301,27 +301,25 @@ int main(int argc, char *argv[])
         if (length > 10000) {
             //if (listnumber == 445139) {
         //if (listnumber == 96) {
-        printf("list number: %d, length: %d", listnumber, (unsigned)length);
+        printf("list number: %d, length: %d\n", listnumber, (unsigned)length);
         //printf("getting list statistics\n");
             
         listStats stats = getStats(listnumber, length);
         //printf("mode: %d, lowexception: %d\n", stats.mode, stats.lowexception);
 
         if (stats.mode == 1 || stats.mode == stats.lowexception || stats.lowexception == 0) {
-            //printf("no low exception\n");
+            printf("no low exception\n");
             /* make combinations without a low exception */
             perms = make_combs_withoutlow(stats.mode, stats.modalFraction, stats.highexception, stats.highFraction);
-            printf(" permutations: %d\n", perms);
+            printf("mode: %d, mode fraction: %.2f, high exception: %d, \npermutations: %d\n", stats.mode, stats.modalFraction, stats.highexception, perms);
         } else {
             //printf("using both low and high exceptions\n");
             perms = make_combs_withlow(stats.mode, stats.modalFraction, stats.lowexception, stats.lowFraction, stats.highexception, stats.highFraction);
-            printf(" permutations: %d\n", perms);
+            printf("mode: %d, mode fraction: %.2f, high exception: %d, \npermutations: %d\n", stats.mode, stats.modalFraction, stats.highexception, perms);
             /* make three bitwidth combinations */
         }
 
-        /* now send list statistics to selector generator */
-            
-            
+                    
         }/* end single list stats stuff */
 
        
