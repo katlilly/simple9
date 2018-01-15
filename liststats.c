@@ -19,8 +19,8 @@ typedef struct {
 } listStats;
 
 
-/* calculate statistics of a list for use in selector generator
-   returns a listStats structure */
+/* getStats function calculate statistics of a list for use in selector generator
+   returns a listStats structure, takes list number and length */
 listStats getStats(int number, int length)
 {
     listStats tempList;
@@ -47,6 +47,7 @@ listStats getStats(int number, int length)
     double fraction = 0;
     int max = 0;
     int mode;
+    int lowexception;
     int nintyfifth;
     int set95th = 0;
     int highoutliers = 0, lowoutliers = 0;
@@ -77,7 +78,6 @@ listStats getStats(int number, int length)
 
     /* find next most frequent bitwidth smaller than the mode */
     max = 0;
-    int lowexception;
     for (i = 0; i < mode; i++) {
         if (bitwidths[i] > max) {
             max = bitwidths[i];
@@ -93,14 +93,11 @@ listStats getStats(int number, int length)
     tempList.highFraction = (double) highoutliers / length;
     
     return tempList;
-    
 }
-
 
 
 int main(int argc, char *argv[])
 {
-    int i;
     int listnumber = 0;
 
     const char *filename;
@@ -129,19 +126,31 @@ int main(int argc, char *argv[])
         //printf("%u: ", (unsigned)length);
         listnumber++;
 
-        
-        if (listnumber == 96) {
+        if (listnumber == 445139) {
+            //if (listnumber == 96) {
             printf("list number: %d, length: %d\n", listnumber, (unsigned)length);
             printf("getting list statistics\n");
             
             listStats statistics = getStats(listnumber, length);
+            printf("mode: %d, lowexception: %d\n", statistics.mode, statistics.lowexception);
 
+            if (statistics.mode == 1 || statistics.mode == statistics.lowexception || statistics.lowexception == 0) {
+                printf("no low exception\n");
+                /* make combinations without a low exception */
+            } else {
+                printf("using both low and high exceptions\n");
+                /* make three bitwidth combinations */
+            }
+
+            /* now send list statistics to selector generator */
+            
             
         }/* end single list stats stuff */
+
+       
         
       
     }/* end read-in of a single list*/
-
     
     return 0;
 }

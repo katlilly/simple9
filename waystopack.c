@@ -64,11 +64,24 @@ void generate_perms(int *x, int n, void callback(int *, int))
 
 
 
+void make_combs_withlow()
+{
+
+}
+
+
+void make_combs_withoutlow()
+{
+
+}
+
+
 /* make changes to this function so that:
    1. it uses only the high exception when mode = 1
    2. it limits exception frequency when appropriate
    3. it deals with modes higher than 5 better */
 
+/* old version, starting from scratch with new statistical inputs. */
 void make_restricted_combination(int mode, int stdev, int excepfreq)
 {
     int i, j, k, l, sum, numints, high, low;
@@ -131,7 +144,7 @@ int main(void)
     /* printf("1 bit ints, 3 bit ints, 5 bit ints, ints packed\n"); */
     /* make_restricted_combination(3, 2); */
 
-    /* this puts no limitations on exception frequency, so way to many
+    /* this puts no limitations on exception frequency, so way too many
        selectors when modal bitwidth is small */
     for (mode = 1; mode < 10; mode++) {
         for (stdev = 1; stdev < 4; stdev++) {
