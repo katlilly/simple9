@@ -64,15 +64,132 @@ void generate_perms(int *x, int n, void callback(int *, int))
 
 
 
-void make_combs_withlow()
-{
 
+int compare_ints(const void *a, const void *b) {
+    const int *ia = (const int *) a;
+    const int *ib = (const int *) b;
+    return *ia < *ib ? -1 : *ia == *ib ? 0 : 1;
 }
 
 
-void make_combs_withoutlow()
-{
 
+/* return value is the number of possible permutations of the combination produced */
+int make_combs_withlow(int mode, double modFrac, int low, double lowFrac, int high, double highFrac)
+{
+    /* decide how many low and high exceptions to include */
+    int approxNumInts = 32 / mode;
+    double dnumLow = lowFrac * approxNumInts;
+    int inumLow = dnumLow + 0.5; 
+    double dnumHigh = highFrac * approxNumInts;
+    int inumHigh = dnumHigh + 0.5;
+
+    /* decide number of modal bitwidths */
+    int sumExcp = inumHigh * high + inumLow * low;
+    int numMode = 0, sum = sumExcp;
+    while (sum < 32) {
+        sum += mode;
+        numMode++;
+    }
+    if (sum > 32) numMode--;
+    
+    
+    /* may want to add something here to check for wasted bits and
+       use them by promoting a low to a mode or a mode to a high */
+    /********** to do ************/
+
+    
+    /* fill an array with the combination */
+    int numInts = inumLow + inumHigh + numMode;
+    printf("total number of ints to pack: %d\n", numInts);
+    int * combination = malloc(numInts * sizeof(*combination));
+
+    int i;
+    for (i = 0; i < inumLow; i++) {
+        combination[i] = low;
+    }
+    for (i = inumLow; i < inumLow + numMode; i++) {
+        combination[i] = mode;
+    }
+    for (i = inumLow + numMode; i < inumLow + numMode + inumHigh; i++) {
+        combination[i] = high;
+    }
+    int checksum = 0;
+    for (i = 0; i < numInts; i++) {
+        printf("%d, ", combination[i]);
+        checksum += combination[i];
+    }
+    printf("\n");
+    printf("bits used: %d\n", checksum);
+
+    
+    /* sort the combination */
+    //qsort(combination, numInts, sizeof(*combination), compare_ints);
+
+    /* count the permutations and return that result */
+
+    numperms = 0;
+    generate_perms(combination, numInts, output_perms);
+    printf("number of permutations of this combination: %d\n", numperms);
+    return numperms;
+}
+
+
+int make_combs_withoutlow(int mode, double modFrac, int high, double highFrac)
+{
+    /* decide how many low and high exceptions to include */
+    int approxNumInts = 32 / mode;
+    //printf("approx ints to pack: %d\n", approxNumInts);
+    double dnumHigh = highFrac * approxNumInts;
+    int inumHigh = dnumHigh + 0.5;
+    //printf("high ints to pack: %d\n", inumHigh);
+
+    /* decide number of modal bitwidths */
+    int sumExcp = inumHigh * high;
+    int numMode = 0, sum = sumExcp;
+    while (sum <= 32) {
+        sum += mode;
+        numMode++;
+    }
+    if (sum > 32) numMode--;
+   
+    printf("numMode: %d\n", numMode);
+    printf("mode: %d\n", mode);
+
+    /* may want to add something here to check for wasted bits and
+       use them by promoting a low to a mode or a mode to a high */
+    /********** to do ************/
+
+    
+    /* fill an array with the combination */
+    int numInts = inumHigh + numMode;
+    printf("total number of ints to pack: %d\n", numInts);
+    int * combination = malloc(numInts * sizeof(*combination));
+
+    int i;
+    for (i = 0; i < numMode; i++) {
+        combination[i] = mode;
+    }
+    for (i = numMode; i < numMode + inumHigh; i++) {
+        combination[i] = high;
+    }
+    int checksum = 0;
+    for (i = 0; i < numInts; i++) {
+        printf("%d, ", combination[i]);
+        checksum += combination[i];
+    }
+    printf("\n");
+    printf("bits used: %d\n", checksum);
+
+    
+    /* sort the combination */
+    //qsort(combination, numInts, sizeof(*combination), compare_ints);
+
+    /* count the permutations and return that result */
+
+    numperms = 0;
+    generate_perms(combination, numInts, output_perms);
+    printf("number of permutations of this combination: %d\n", numperms);
+    return numperms;
 }
 
 
@@ -133,8 +250,17 @@ int main(void)
 {
     int mode, stdev, excepfreq;
     long long ways; 
-    int payloadbits = 6;
+    int payloadbits = 32;
 
+    int perms = make_combs_withlow(5, 0.5, 4, 0.3, 7, 0.2);
+    printf("%d\n", perms);
+
+    perms = make_combs_withlow(6, 0.5, 5, 0.3, 7, 0.2);
+    printf("%d\n", perms);
+
+    
+    perms = make_combs_withoutlow(2, 0.8, 3, 0.2);
+    printf("%d\n", perms);
     
     /* printf("ways to pack with mode of 3 and stdev of 2\n"); */
     /* printf("1 bit ints, 3 bit ints, 5 bit ints, ints packed\n"); */
@@ -142,15 +268,15 @@ int main(void)
 
     /* this puts no limitations on exception frequency, so way too many
        selectors when modal bitwidth is small */
-    for (mode = 1; mode < 10; mode++) {
-        for (stdev = 1; stdev < 4; stdev++) {
-            for (excepfreq = 1; excepfreq < 5; excepfreq++) {
-                numperms = 0;
-                make_restricted_combination(mode, stdev, excepfreq); 
-                printf("number of permutations with mode = %d, stdev = %d, excepfreq = %d: %d\n", mode, stdev, excepfreq, numperms);
-            }
-        }
-    }
+    /* for (mode = 1; mode < 10; mode++) { */
+    /*     for (stdev = 1; stdev < 4; stdev++) { */
+    /*         for (excepfreq = 1; excepfreq < 5; excepfreq++) { */
+    /*             numperms = 0; */
+    /*             make_restricted_combination(mode, stdev, excepfreq);  */
+    /*             printf("number of permutations with mode = %d, stdev = %d, excepfreq = %d: %d\n", mode, stdev, excepfreq, numperms); */
+    /*         } */
+    /*     } */
+    /* } */
 
     /* make_restricted_combination(5, 1); */
     /* printf("%d ways to pack with mode = 5, stdev = 1\n", numperms); */

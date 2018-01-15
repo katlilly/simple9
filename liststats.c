@@ -7,6 +7,8 @@
 
 static uint32_t *postings_list;
 
+int numperms = 0;
+
 typedef struct {
     int listNumber;
     int listLength;
@@ -16,7 +18,175 @@ typedef struct {
     double modalFraction;
     double lowFraction;
     double highFraction;
+    int numPerms;
 } listStats;
+
+void output_perms(int *array, int length)
+{
+    int i;
+    for (i = 0; i < length; i++) {
+        //    printf("%d%c", array[i], i == length - 1 ? '\n' : ' ');
+    }
+}
+ 
+
+/* next lexicographical permutation. taken from rosettacode */
+int next_lex_perm(int *a, int n) {
+#define swap(i, j) {t = a[i]; a[i] = a[j]; a[j] = t;}
+    int k, l, t;
+ 
+    /* 1. Find the largest index k such that a[k] < a[k + 1]. If no such
+       index exists, the permutation is the last permutation. */
+    for (k = n - 1; k && a[k - 1] >= a[k]; k--);
+
+    if (!k--) return 0; 
+    /* 2. Find the largest index l such that a[k] < a[l]. Since k + 1 is
+       such an index, l is well defined */
+    for (l = n - 1; a[l] <= a[k]; l--) {
+        ;
+    }
+ 
+    /* 3. Swap a[k] with a[l] */
+    swap(k, l);
+ 
+    /* 4. Reverse the sequence from a[k + 1] to the end */
+    for (k++, l = n - 1; l > k; l--, k++)
+        swap(k, l);
+    return 1;
+#undef swap
+}
+
+
+/* generates permutations in correct order and outputs unique ones
+   taken from rosettacode */
+void generate_perms(int *x, int n, void callback(int *, int))
+{
+    do {
+        if (callback) callback(x, n);
+        numperms++;
+    } while (next_lex_perm(x, n));
+}
+
+
+/* return value is the number of possible permutations of the combination produced */
+int make_combs_withlow(int mode, double modFrac, int low, double lowFrac, int high, double highFrac)
+{
+    /* decide how many low and high exceptions to include */
+    int approxNumInts = 32 / mode;
+    double dnumLow = lowFrac * approxNumInts;
+    int inumLow = dnumLow + 0.5; 
+    double dnumHigh = highFrac * approxNumInts;
+    int inumHigh = dnumHigh + 0.5;
+
+    /* decide number of modal bitwidths */
+    int sumExcp = inumHigh * high + inumLow * low;
+    int numMode = 0, sum = sumExcp;
+    while (sum < 32) {
+        sum += mode;
+        numMode++;
+    }
+    if (sum > 32) numMode--;
+    
+    
+    /* may want to add something here to check for wasted bits and
+       use them by promoting a low to a mode or a mode to a high */
+    /********** to do ************/
+
+    
+    /* fill an array with the combination */
+    int numInts = inumLow + inumHigh + numMode;
+    //printf("total number of ints to pack: %d\n", numInts);
+    int * combination = malloc(numInts * sizeof(*combination));
+
+    int i;
+    for (i = 0; i < inumLow; i++) {
+        combination[i] = low;
+    }
+    for (i = inumLow; i < inumLow + numMode; i++) {
+        combination[i] = mode;
+    }
+    for (i = inumLow + numMode; i < inumLow + numMode + inumHigh; i++) {
+        combination[i] = high;
+    }
+    int checksum = 0;
+    for (i = 0; i < numInts; i++) {
+        printf("%d, ", combination[i]);
+        checksum += combination[i];
+    }
+    //printf("\n");
+    //printf("bits used: %d\n", checksum);
+
+    
+    /* sort the combination */
+    //qsort(combination, numInts, sizeof(*combination), compare_ints);
+
+    /* count the permutations and return that result */
+
+    numperms = 0;
+    generate_perms(combination, numInts, output_perms);
+    //printf("number of permutations of this combination: %d\n", numperms);
+    return numperms;
+}
+
+
+int make_combs_withoutlow(int mode, double modFrac, int high, double highFrac)
+{
+    /* decide how many low and high exceptions to include */
+    int approxNumInts = 32 / mode;
+    //printf("approx ints to pack: %d\n", approxNumInts);
+    double dnumHigh = highFrac * approxNumInts;
+    int inumHigh = dnumHigh + 0.5;
+    //printf("high ints to pack: %d\n", inumHigh);
+
+    /* decide number of modal bitwidths */
+    int sumExcp = inumHigh * high;
+    int numMode = 0, sum = sumExcp;
+    while (sum <= 32) {
+        sum += mode;
+        numMode++;
+    }
+    if (sum > 32) numMode--;
+   
+    //printf("numMode: %d\n", numMode);
+    //printf("mode: %d\n", mode);
+
+    /* may want to add something here to check for wasted bits and
+       use them by promoting a low to a mode or a mode to a high */
+    /********** to do ************/
+
+    
+    /* fill an array with the combination */
+    int numInts = inumHigh + numMode;
+    //printf("numHigh: %d, numMode: %d, numInts: %d\n", inumHigh, numMode, numInts);
+    //printf("total number of ints to pack: %d\n", numInts);
+    int * combination = malloc(numInts * sizeof(*combination));
+
+    int i;
+    for (i = 0; i < numMode; i++) {
+        combination[i] = mode;
+    }
+    for (i = numMode; i < numMode + inumHigh; i++) {
+        combination[i] = high;
+    }
+    int checksum = 0;
+    for (i = 0; i < numInts; i++) {
+        //printf("i: %d, bitwidth: %d, ", i, combination[i]);
+        checksum += combination[i];
+    }
+    //printf("\n");
+    //printf("bits used: %d\n", checksum);
+
+    
+    /* sort the combination */
+    //qsort(combination, numInts, sizeof(*combination), compare_ints);
+
+    /* count the permutations and return that result */
+
+    numperms = 0;
+    generate_perms(combination, numInts, output_perms);
+    //printf("number of permutations of this combination: %d\n", numperms);
+    return numperms;
+}
 
 
 /* getStats function calculate statistics of a list for use in selector generator
@@ -41,7 +211,7 @@ listStats getStats(int number, int length)
         prev = postings_list[i];
         bitwidths[fls(dgaps[i])]++;
     }
-    printf("\n");
+    //printf("\n");
 
     int sum = 0;
     double fraction = 0;
@@ -53,11 +223,11 @@ listStats getStats(int number, int length)
     int highoutliers = 0, lowoutliers = 0;
 
     /* find mode and 95th percentile */
-    printf("bitwidth: \tnum ints: \tcumulative fraction:\n");
+    //printf("bitwidth: \tnum ints: \tcumulative fraction:\n");
     for (i = 0; i < 10; i++) {
         sum += bitwidths[i];
         fraction = (double) sum / length;
-        printf("%d \t\t%d \t\t%.2f\n", i, bitwidths[i], fraction);
+        //printf("%d \t\t%d \t\t%.2f\n", i, bitwidths[i], fraction);
         if (bitwidths[i] > max) {
             max = bitwidths[i];
             mode = i;
@@ -126,23 +296,30 @@ int main(int argc, char *argv[])
         //printf("%u: ", (unsigned)length);
         listnumber++;
 
-        if (listnumber == 445139) {
-            //if (listnumber == 96) {
-            printf("list number: %d, length: %d\n", listnumber, (unsigned)length);
-            printf("getting list statistics\n");
+        int perms;
+        //if (length > 100 && listnumber < 100) {
+        if (length > 10000) {
+            //if (listnumber == 445139) {
+        //if (listnumber == 96) {
+        printf("list number: %d, length: %d", listnumber, (unsigned)length);
+        //printf("getting list statistics\n");
             
-            listStats statistics = getStats(listnumber, length);
-            printf("mode: %d, lowexception: %d\n", statistics.mode, statistics.lowexception);
+        listStats stats = getStats(listnumber, length);
+        //printf("mode: %d, lowexception: %d\n", stats.mode, stats.lowexception);
 
-            if (statistics.mode == 1 || statistics.mode == statistics.lowexception || statistics.lowexception == 0) {
-                printf("no low exception\n");
-                /* make combinations without a low exception */
-            } else {
-                printf("using both low and high exceptions\n");
-                /* make three bitwidth combinations */
-            }
+        if (stats.mode == 1 || stats.mode == stats.lowexception || stats.lowexception == 0) {
+            //printf("no low exception\n");
+            /* make combinations without a low exception */
+            perms = make_combs_withoutlow(stats.mode, stats.modalFraction, stats.highexception, stats.highFraction);
+            printf(" permutations: %d\n", perms);
+        } else {
+            //printf("using both low and high exceptions\n");
+            perms = make_combs_withlow(stats.mode, stats.modalFraction, stats.lowexception, stats.lowFraction, stats.highexception, stats.highFraction);
+            printf(" permutations: %d\n", perms);
+            /* make three bitwidth combinations */
+        }
 
-            /* now send list statistics to selector generator */
+        /* now send list statistics to selector generator */
             
             
         }/* end single list stats stuff */
