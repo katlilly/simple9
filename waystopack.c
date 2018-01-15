@@ -76,10 +76,6 @@ void make_combs_withoutlow()
 }
 
 
-/* make changes to this function so that:
-   1. it uses only the high exception when mode = 1
-   2. it limits exception frequency when appropriate
-   3. it deals with modes higher than 5 better */
 
 /* old version, starting from scratch with new statistical inputs. */
 void make_restricted_combination(int mode, int stdev, int excepfreq)
