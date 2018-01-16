@@ -71,7 +71,18 @@ void generate_perms(int *x, int n, void callback(int *, int))
 }
 
 
-/* return value is the number of possible permutations of the combination produced */
+int make_combs_3widths(int mode, double modFrac, int low, double lowFrac, int high, double highFrac)
+{
+    int payload = 32;
+    int bitsused = high;
+    int numHigh = 1;
+    
+}
+
+
+/* old version
+*******************************
+return value is the number of possible permutations of the combination produced */
 int make_combs_withlow(int mode, double modFrac, int low, double lowFrac, int high, double highFrac)
 {
     /* decide how many low and high exceptions to include */
@@ -131,7 +142,7 @@ int make_combs_withlow(int mode, double modFrac, int low, double lowFrac, int hi
     return numperms;
 }
 
-
+/* old version */
 int make_combs_withoutlow(int mode, double modFrac, int high, double highFrac)
 {
     /* decide how many low and high exceptions to include */
@@ -245,12 +256,12 @@ listStats getStats(int number, int length)
     int highoutliers = 0, lowoutliers = 0;
 
     /* find mode and 95th percentile */
-    //printf("bitwidth: \tnum ints: \tcumulative fraction:\n");
+    printf("bitwidth: \tnum ints: \tcumulative fraction:\n");
     for (i = 0; i < 32; i++) {
         sum += bitwidths[i];
         fraction = (double) sum / length;
-        //printf("%d \t\t%d \t\t%.2f\n", i, bitwidths[i], fraction);
-        if (bitwidths[i] > max) {
+        printf("%d \t\t%d \t\t%.2f\n", i, bitwidths[i], fraction);
+        if (bitwidths[i] >= max) {
             max = bitwidths[i];
             mode = i;
         }
@@ -273,15 +284,12 @@ listStats getStats(int number, int length)
     /* find next most frequent bitwidth smaller than the mode */
     max = 0;
     for (i = 0; i < mode; i++) {
-        if (bitwidths[i] > max) {
+        if (bitwidths[i] >= max) {
             max = bitwidths[i];
             lowexception = i;
         } 
     }
 
-    /* temporary fix of a problem ********* TO DO ******/
-    if (mode == 0) mode = 1;
-    /**** above line is making a real problem go away without fixing it ********/
     tempList.mode = mode;
     tempList.lowexception = lowexception;
     tempList.highexception = nintyfifth;
@@ -324,9 +332,13 @@ int main(int argc, char *argv[])
         listnumber++;
 
         int perms;
-        //if (listnumber == 236028) {
-        //if (listnumber == 491601) {
-        //if (listnumber < 100) {
+        //if (listnumber == 236029) {
+
+            //for (int i = 0; i < length; i++) {
+            //    printf("%d, ", postings_list[i]);
+            //}
+        if (listnumber == 499520) {
+        //if (length > 1000) {
             //if (listnumber == 445139) {
             //if (listnumber == 96) {
             //printf("list number: %d, length: %d\n", listnumber, (unsigned)length);
@@ -334,14 +346,13 @@ int main(int argc, char *argv[])
             
             listStats stats = getStats(listnumber, length);
 
+            
+            
+            
             /* output statistics to a csv file to look at with matlab */
-            //if (stats.mode == 0) {
-            //    printf("oops, list number %d has a mode of zero\n", listnumber);
-            //} else {
-                
-                //}
-
-            /* statistics struct     */
+          
+            
+             /* statistics struct     */
             /*************************/
             /* int listNumber;       */
             /* int listLength;       */
@@ -366,11 +377,11 @@ int main(int argc, char *argv[])
                 stats.numPerms = make_combs_withlow(stats.mode, stats.modalFraction, stats.lowexception, stats.lowFraction, stats.highexception, stats.highFraction);
                 //printf("mode: %d, mode fraction: %.2f, high exception: %d, \npermutations: %d\n", stats.mode, stats.modalFraction, stats.highexception, perms);
 
-                printf("%d, %d, %.3f, %.3f, %d, %d, %d, %.3f, %.3f, %.3f, %d\n", listnumber, length, stats.mean, stats.stdev, stats.mode, stats.lowexception, stats.highexception, stats.modalFraction, stats.lowFraction, stats.highFraction, stats.numPerms);
+                printf("%d, %4d,  %.3f, %.3f, %2d, %2d, %2d, %.5f, %.5f, %.5f, %d\n", listnumber, length, stats.mean, stats.stdev, stats.mode, stats.lowexception, stats.highexception, stats.modalFraction, stats.lowFraction, stats.highFraction, stats.numPerms);
             }
 
                     
-            //}/* end single list stats stuff */
+            }/* end single list stats stuff */
 
        
         
