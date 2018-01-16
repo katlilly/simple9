@@ -12,6 +12,8 @@ int numperms = 0;
 typedef struct {
     int listNumber;
     int listLength;
+    double mean;
+    double stdev;
     int mode;
     int lowexception;
     int highexception;
@@ -175,7 +177,6 @@ int make_combs_withoutlow(int mode, double modFrac, int high, double highFrac)
     }
     //printf("\n");
     //printf("bits used: %d\n", checksum);
-
     
     /* sort the combination */
     //qsort(combination, numInts, sizeof(*combination), compare_ints);
@@ -187,6 +188,8 @@ int make_combs_withoutlow(int mode, double modFrac, int high, double highFrac)
     //printf("number of permutations of this combination: %d\n", numperms);
     return numperms;
 }
+
+
 
 
 /* getStats function calculate statistics of a list for use in selector generator
@@ -213,7 +216,22 @@ listStats getStats(int number, int length)
     }
     //printf("\n");
 
-    int sum = 0;
+    double sum = 0;
+    double mean;
+    doubl stdev = 0;
+
+    for (i = 0; i < length; i++) {
+        sum += dgaps[i];
+    }
+    mean = sum / length;
+
+    for (i = 0; i < length; i++) {
+        stdev += pow(dgaps[i] - mean, 2);
+    }
+
+    stdev
+    
+    sum = 0;
     double fraction = 0;
     int max = 0;
     int mode;
@@ -223,11 +241,11 @@ listStats getStats(int number, int length)
     int highoutliers = 0, lowoutliers = 0;
 
     /* find mode and 95th percentile */
-    //printf("bitwidth: \tnum ints: \tcumulative fraction:\n");
+    printf("bitwidth: \tnum ints: \tcumulative fraction:\n");
     for (i = 0; i < 10; i++) {
         sum += bitwidths[i];
         fraction = (double) sum / length;
-        //printf("%d \t\t%d \t\t%.2f\n", i, bitwidths[i], fraction);
+        printf("%d \t\t%d \t\t%.2f\n", i, bitwidths[i], fraction);
         if (bitwidths[i] > max) {
             max = bitwidths[i];
             mode = i;
@@ -297,8 +315,8 @@ int main(int argc, char *argv[])
         listnumber++;
 
         int perms;
-        //if (length > 100 && listnumber < 100) {
-        if (length > 10000) {
+        if (listnumber == 491601) {
+        //if (length > 10000) {
             //if (listnumber == 445139) {
         //if (listnumber == 96) {
         printf("list number: %d, length: %d\n", listnumber, (unsigned)length);
@@ -309,14 +327,11 @@ int main(int argc, char *argv[])
 
         if (stats.mode == 1 || stats.mode == stats.lowexception || stats.lowexception == 0) {
             printf("no low exception\n");
-            /* make combinations without a low exception */
             perms = make_combs_withoutlow(stats.mode, stats.modalFraction, stats.highexception, stats.highFraction);
             printf("mode: %d, mode fraction: %.2f, high exception: %d, \npermutations: %d\n", stats.mode, stats.modalFraction, stats.highexception, perms);
         } else {
-            //printf("using both low and high exceptions\n");
             perms = make_combs_withlow(stats.mode, stats.modalFraction, stats.lowexception, stats.lowFraction, stats.highexception, stats.highFraction);
             printf("mode: %d, mode fraction: %.2f, high exception: %d, \npermutations: %d\n", stats.mode, stats.modalFraction, stats.highexception, perms);
-            /* make three bitwidth combinations */
         }
 
                     
