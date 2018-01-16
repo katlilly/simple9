@@ -7,6 +7,7 @@
 int mode = 5, stdev = 2;
 int numperms = 0;
 
+
 /* function to calculate n choose k
    usage: n = payloadbits minus 1
           k = ints to pay minus 1 */
@@ -16,6 +17,7 @@ long long choose(n, k)
     return (n * choose(n-1, k-1)) / k;
 }
 
+/* print to screen each permutation */
 void output_perms(int *array, int length)
 {
     int i;
@@ -25,7 +27,7 @@ void output_perms(int *array, int length)
 }
  
 
-/* next lexicographical permutation. taken from rosettacode */
+/* get next lexicographical permutation. taken from rosettacode */
 int next_lex_perm(int *a, int n) {
 #define swap(i, j) {t = a[i]; a[i] = a[j]; a[j] = t;}
     int k, l, t;
@@ -53,7 +55,7 @@ int next_lex_perm(int *a, int n) {
 
 
 /* generates permutations in correct order and outputs unique ones
-   taken from rosettacode */
+   taken directly from rosettacode */
 void generate_perms(int *x, int n, void callback(int *, int))
 {
     do {
@@ -64,7 +66,7 @@ void generate_perms(int *x, int n, void callback(int *, int))
 
 
 
-
+/* return 1 if a bigger, -1 if b bigger, 0 if equal */
 int compare_ints(const void *a, const void *b) {
     const int *ia = (const int *) a;
     const int *ib = (const int *) b;
@@ -73,7 +75,8 @@ int compare_ints(const void *a, const void *b) {
 
 
 
-/* return value is the number of possible permutations of the combination produced */
+/* designed to output a combination array, but for now just returns
+   the number of possible permutations of the combination produced */
 int make_combs_withlow(int mode, double modFrac, int low, double lowFrac, int high, double highFrac)
 {
     /* decide how many low and high exceptions to include */
