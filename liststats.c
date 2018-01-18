@@ -29,6 +29,15 @@ typedef struct {
 } listStats;
 
 
+
+/* return 1 if a bigger, -1 if b bigger, 0 if equal */
+int compare_ints(const void *a, const void *b) {
+    const int *ia = (const int *) a;
+    const int *ib = (const int *) b;
+    return *ia < *ib ? -1 : *ia == *ib ? 0 : 1;
+}
+
+
 /* print a permutation to screen */
 void output_perms(int *array, int length)
 {
@@ -134,18 +143,18 @@ int * make_combs(int mode, double modeFrac, int low, double lowFrac, int high, d
                     bitsused += high - mode;
                 }
                 /* next best is to add a mode */
-                else if (bitsused + mode <= 32) {
+                if (bitsused + mode <= 32) {
                     numMode++;
                     bitsused += mode;
                 }
                 /* else try promote a low to a mode */
-                else if (bitsused + mode - low <= 32) {
+                if (bitsused + mode - low <= 32) {
                     numLow--;
                     numMode++;
                     bitsused += mode - low;
                 }
                 /* last option is to add a low exception */
-                else if (bitsused + low <= 32) {
+                if (bitsused + low <= 32) {
                     numLow++;
                     bitsused += low;
                 } else {
@@ -177,6 +186,7 @@ int * make_combs(int mode, double modeFrac, int low, double lowFrac, int high, d
         }
         
         topack = numInts; /* send number of ints in combination to global variable */
+        qsort(comb, topack, sizeof(*comb), compare_ints);
         return comb;
 
     } else {
@@ -290,10 +300,9 @@ listStats getStats(int number, int length)
 
 int main(int argc, char *argv[])
 {
-    int listnumber = 0;
-    int * 
-        
-        const char *filename;
+    int i, listnumber = 0;
+   
+    const char *filename;
 
     if (argc == 2) {
         filename = argv[1];
@@ -309,6 +318,10 @@ int main(int argc, char *argv[])
 	exit(printf("Cannot open %s\n", filename));
     }
 
+    int selectorsize;
+    int * selectorbits = malloc(32 * sizeof(*selectorbits));
+    memset(selectorbits, 0, 32 * sizeof(*selectorbits)); 
+    
     uint32_t length;
     while (fread(&length, sizeof(length), 1, fp)  == 1) {
 
@@ -324,17 +337,41 @@ int main(int argc, char *argv[])
         listStats stats = getStats(listnumber, length);
         
         comb = make_combs(stats.mode, stats.modFrac, stats.lowexcp, stats.lowFrac, stats.highexcp, stats.highFrac);
-
+                
         numperms = 0;
-        generate_perms(comb, topack, output_perms);
+        //qsort(comb, topack, sizeof(*comb), compare_ints);
+        /* generate_perms has the side effect of reverse sorting the bitwidth array */
+        generate_perms(comb, topack, output_perms); /* this updates global variable numperms */
         stats.numPerms = numperms;
 
-        printf("%d, %4d,  %.3f, %.3f, %2d, %2d, %2d, %.5f, %.5f, %.5f, %d\n", listnumber, length, stats.mean, stats.stdev, stats.mode, stats.lowexcp, stats.highexcp, stats.modFrac, stats.lowFrac, stats.highFrac, stats.numPerms);
+        /* print statistics to a csv file to look at with matlab */
+        //printf("%d, %4d,  %.3f, %.3f, %2d, %2d, %2d, %.5f, %.5f, %.5f, %d\n", listnumber, length, stats.mean, stats.stdev, stats.mode, stats.lowexcp, stats.highexcp, stats.modFrac, stats.lowFrac, stats.highFrac, stats.numPerms);
 
+        /* add selector size needed for this list to selector bit frequency array */
+        selectorsize = fls(stats.numPerms);
+        selectorbits[selectorsize]++;
         
         //}/* end single list stats stuff */
              
     }/* end read-in of a single list*/
+
+    /* print selector size stats */
+    for (i = 1; i < 32; i++) {
+        printf("%5d %5d\n", i, selectorbits[i]);
+    }
+
+    int eightbitselectorsum = 0;
+    for (i = 1; i < 9; i++) {
+        eightbitselectorsum += selectorbits[i];
+    }
+
+    int bigselectors = 0;
+    for (i = 9; i < 32; i++) {
+        bigselectors += selectorbits[i];
+    }
+
+    double frac8bit = (double) eightbitselectorsum / (eightbitselectorsum + bigselectors);
+    printf("%.5f\n", frac8bit);
     
     return 0;
 }
