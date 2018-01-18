@@ -344,6 +344,14 @@ int main(int argc, char *argv[])
         generate_perms(comb, topack, output_perms); /* this updates global variable numperms */
         stats.numPerms = numperms;
 
+        if (numperms > 256) {
+            for (i = topack - 1; i >= 0; i--) {
+                printf("%d, ", comb[i]);
+            }
+            printf(" number of permutations: %d", numperms);
+            printf("\n");
+        }
+
         /* print statistics to a csv file to look at with matlab */
         //printf("%d, %4d,  %.3f, %.3f, %2d, %2d, %2d, %.5f, %.5f, %.5f, %d\n", listnumber, length, stats.mean, stats.stdev, stats.mode, stats.lowexcp, stats.highexcp, stats.modFrac, stats.lowFrac, stats.highFrac, stats.numPerms);
 
